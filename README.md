@@ -590,7 +590,7 @@ if __name__ == "__main__":
 
 1. Fork the repository
 2. Create a feature branch
-3. Write tests (maintain 95%+ coverage)
+3. Write tests (maintain 98%+ coverage)
 4. Run `pytest tests/ --cov=src/relics`
 5. Run `flake8 src/ tests/` and `mypy src/`
 6. Submit a pull request

@@ -52,35 +52,6 @@ class Position(Component):
         return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
 ```
 
-### Prefer Immutable Components
-
-Immutable components are safer and work better with observers.
-
-### ✅ Good
-
-```python
-@dataclass(frozen=True)
-class Position(Component):
-    x: float
-    y: float
-
-# Update by replacement
-entity.remove_component(Position)
-entity.add_component(Position(x=10, y=20))
-```
-
-### ❌ Avoid (unless using @monitored)
-
-```python
-@dataclass
-class Position(Component):
-    x: float
-    y: float
-
-pos = entity.get_component(Position)
-pos.x = 10  # Mutation without tracking
-```
-
 ### Use Flat Data Structures
 
 ```python
