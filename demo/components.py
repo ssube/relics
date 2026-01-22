@@ -113,3 +113,4 @@ class CameraInput(Component):
     move_right: bool = False
     move_up: bool = False
     move_down: bool = False
+    sprint: bool = False  # Shift key for 2x speed

@@ -7,7 +7,13 @@
       "Bash(venv/bin/mypy:*)",
       "Bash(venv/bin/pytest:*)",
       "Bash(venv/bin/black:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(ls:*)",
+      "Bash(./scripts/setup.sh:*)",
+      "Bash(./scripts/test.sh:*)",
+      "Bash(source venv/bin/activate)",
+      "Bash(python -m py_compile:*)"
     ]
   }
 }

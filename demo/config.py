@@ -28,17 +28,17 @@ FLOWER_SIZE = 16
 CAMERA_SIZE = 1  # Camera entity has minimal size
 
 # AI behavior ranges
-FOX_SIGHT_RANGE = 200.0  # Distance fox can detect/lose rabbits
-RABBIT_FLEE_RANGE = 150.0  # Distance rabbit will flee from fox
+FOX_SIGHT_RANGE = 350.0  # Distance fox can detect/lose rabbits
+RABBIT_FLEE_RANGE = 200.0  # Distance rabbit will flee from fox
 RABBIT_SEEK_RANGE = 500.0  # Distance rabbit will seek flowers
 
 # Movement speeds (pixels per second)
-RABBIT_SPEED = 100.0
-FOX_SPEED = 80.0
-CAMERA_SPEED = 300.0  # Scroll speed
+RABBIT_SPEED = 50.0
+FOX_SPEED = 40.0
+CAMERA_SPEED = 200.0  # Scroll speed
 
 # Respawn settings
-SAFE_SPAWN_DISTANCE = 300.0  # Minimum distance from foxes for rabbit respawn
+SAFE_SPAWN_DISTANCE = 250.0  # Minimum distance from foxes for rabbit respawn
 
 # Colors (RGB tuples)
 COLORS = {

@@ -41,6 +41,7 @@ python demo/main.py
 | A | Scroll camera left |
 | S | Scroll camera down |
 | D | Scroll camera right |
+| Shift | Hold for 2x camera speed |
 | Space | Pause/Resume simulation |
 | Escape | Quit demo |
 

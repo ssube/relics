@@ -237,24 +237,27 @@ class CameraSystem(System):
             camera_input = camera.get_component(CameraInput)
             vel = camera.get_component(Velocity)
 
+            # Apply sprint multiplier
+            speed = CAMERA_SPEED * 2 if camera_input.sprint else CAMERA_SPEED
+
             # Convert input to velocity
             vel.vx = 0
             vel.vy = 0
 
             if camera_input.move_left:
-                vel.vx -= CAMERA_SPEED
+                vel.vx -= speed
             if camera_input.move_right:
-                vel.vx += CAMERA_SPEED
+                vel.vx += speed
             if camera_input.move_up:
-                vel.vy -= CAMERA_SPEED
+                vel.vy -= speed
             if camera_input.move_down:
-                vel.vy += CAMERA_SPEED
+                vel.vy += speed
 
             # Normalize diagonal movement
             if vel.vx != 0 and vel.vy != 0:
                 norm_x, norm_y = normalize(vel.vx, vel.vy)
-                vel.vx = norm_x * CAMERA_SPEED
-                vel.vy = norm_y * CAMERA_SPEED
+                vel.vx = norm_x * speed
+                vel.vy = norm_y * speed
 
 
 class MovementSystem(System):
@@ -305,8 +308,18 @@ class BoundsSystem(System):
                 max_x = WORLD_WIDTH - bbox.width
                 max_y = WORLD_HEIGHT - bbox.height
 
+            # Clamp position and zero velocity if hitting bounds
+            old_x, old_y = pos.x, pos.y
             pos.x = max(0, min(pos.x, max_x))
             pos.y = max(0, min(pos.y, max_y))
+
+            # Zero out velocity component when hitting bounds to prevent jittering
+            if entity.has_component(Velocity):
+                vel = entity.get_component(Velocity)
+                if pos.x != old_x:  # Hit horizontal bound
+                    vel.vx = 0
+                if pos.y != old_y:  # Hit vertical bound
+                    vel.vy = 0
 
 
 class CollisionSystem(System):
@@ -500,4 +513,5 @@ class InputSystem:
             camera_input.move_right = keys[pygame.K_d]
             camera_input.move_up = keys[pygame.K_w]
             camera_input.move_down = keys[pygame.K_s]
+            camera_input.sprint = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
             break
