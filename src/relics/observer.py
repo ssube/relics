@@ -56,7 +56,7 @@ class OnComponentAdded(Observer):
             entity: The entity that received the component.
             component: The component that was added.
         """
-        pass
+        pass  # abstract
 
 
 class OnComponentRemoved(Observer):
@@ -75,7 +75,7 @@ class OnComponentRemoved(Observer):
             entity: The entity that lost the component.
             component: The component that was removed.
         """
-        pass
+        pass  # abstract
 
 
 class OnComponentChanged(Observer):
@@ -101,7 +101,7 @@ class OnComponentChanged(Observer):
             old_value: The previous component value.
             new_value: The new component value.
         """
-        pass
+        pass  # abstract
 
 
 class OnEntityCreated(Observer):
@@ -120,7 +120,7 @@ class OnEntityCreated(Observer):
         Args:
             entity: The entity that was created.
         """
-        pass
+        pass  # abstract
 
 
 class OnEntityDestroyed(Observer):
@@ -139,7 +139,7 @@ class OnEntityDestroyed(Observer):
         Args:
             entity: The entity that was destroyed.
         """
-        pass
+        pass  # abstract
 
 
 class OnRelationshipAdded(Observer):
@@ -161,7 +161,7 @@ class OnRelationshipAdded(Observer):
             edge: The edge instance that was added.
             target: The target entity of the relationship.
         """
-        pass
+        pass  # abstract
 
 
 class OnRelationshipRemoved(Observer):
@@ -183,7 +183,7 @@ class OnRelationshipRemoved(Observer):
             edge: The edge instance that was removed.
             target: The target entity of the relationship.
         """
-        pass
+        pass  # abstract
 
 
 class OnCustomEvent(Observer):
@@ -201,7 +201,7 @@ class OnCustomEvent(Observer):
         Args:
             event: The custom event that was emitted.
         """
-        pass
+        pass  # abstract
 
 
 # Multi-event observers for lifecycle tracking

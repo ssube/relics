@@ -26,7 +26,7 @@ class IndexView(ABC):
         Yields:
             Entity handles for matching entities.
         """
-        pass
+        pass  # abstract
 
     @abstractmethod
     def count(self) -> int:
@@ -35,7 +35,7 @@ class IndexView(ABC):
         Returns:
             Number of matching entities.
         """
-        pass
+        pass  # abstract
 
     def __len__(self) -> int:
         """Get the number of entities in the index."""

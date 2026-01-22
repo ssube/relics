@@ -164,7 +164,7 @@ class System(ABC):
         Returns:
             A QueryBuilder that selects entities for this system.
         """
-        pass
+        pass  # abstract
 
     def deps(self) -> Dict[RunOrder, List[Type["System"]]]:
         """Declare execution order dependencies.
@@ -219,7 +219,7 @@ class System(ABC):
             components: List of component lists (from iterate()).
             delta: Time elapsed since last tick in seconds.
         """
-        pass
+        pass  # abstract
 
     def _should_run(self, epoch: int, delta: float) -> bool:
         """Check if this system should run.
