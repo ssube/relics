@@ -224,3 +224,70 @@ class TestSpatialIndexObserver3D:
         observer = create_spatial_observer_3d(index, Position3D)
 
         assert observer.component_type == Position3D
+
+
+class TestSpatialIndexObserver2DComponentBinding:
+    """Tests for component binding in 2D spatial observer."""
+
+    def test_observer_binds_monitored_component_on_add(self) -> None:
+        """Test that adding a monitored component via add_component triggers binding."""
+        world = World()
+        # Create prefab WITHOUT Position2D
+        world.register_prefab("entity_no_pos", {})
+
+        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        index = MaterializedSpatialIndex2D(world, Position2D, bounds)
+
+        observer = create_spatial_observer_2d(index, Position2D)
+        world.observe(observer)
+
+        # Spawn entity without position
+        entity = world.spawn("entity_no_pos")
+        world.tick(0)
+
+        # Manually initialize index to set baseline
+        assert index.count() == 0
+
+        # Add position component via add_component (triggers on_component_added)
+        pos = Position2D(x=100, y=100)
+        entity.add_component(pos)
+        world.tick(0)
+
+        # Verify entity was added to index
+        assert index.count() == 1
+        assert entity.id in index.get_entity_ids()
+
+
+class TestSpatialIndexObserver3DComponentBinding:
+    """Tests for component binding in 3D spatial observer."""
+
+    def test_observer_binds_monitored_component_on_add_3d(self) -> None:
+        """Test that adding a monitored component via add_component triggers binding in 3D."""
+        world = World()
+        # Create prefab WITHOUT Position3D
+        world.register_prefab("entity_no_pos", {})
+
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        index = MaterializedSpatialIndex3D(world, Position3D, bounds)
+
+        observer = create_spatial_observer_3d(index, Position3D)
+        world.observe(observer)
+
+        # Spawn entity without position
+        entity = world.spawn("entity_no_pos")
+        world.tick(0)
+
+        # Manually initialize index to set baseline
+        assert index.count() == 0
+
+        # Add position component via add_component (triggers on_component_added)
+        pos = Position3D(x=100, y=100, z=100)
+        entity.add_component(pos)
+        world.tick(0)
+
+        # Verify entity was added to index
+        assert index.count() == 1
+        assert entity.id in index.get_entity_ids()

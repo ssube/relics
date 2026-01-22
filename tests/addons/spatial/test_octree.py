@@ -274,3 +274,234 @@ class TestOctree:
         box = Box(min_x=0, min_y=0, min_z=0, max_x=1000, max_y=1000, max_z=1000)
         results = list(tree.query(box))
         assert len(results) == 10
+
+    def test_bounds_property(self) -> None:
+        """Test accessing bounds property."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        tree = Octree(bounds)
+
+        assert tree.bounds == bounds
+        assert tree.bounds.center_x == 500
+
+    def test_remove_nonexistent_entity(self) -> None:
+        """Test removing an entity that doesn't exist returns False."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        tree = Octree(bounds)
+
+        entity_id = EntityId(prefab="test", sequence=999)
+        # Entity was never added
+        assert not tree.remove(entity_id)
+
+    def test_remove_from_subdivided_tree(self) -> None:
+        """Test removing entities from a tree that has subdivided."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Low capacity to force subdivision
+        tree = Octree(bounds, max_entities_per_node=2, max_depth=4)
+
+        # Insert entities to force subdivision
+        entities = []
+        for i in range(10):
+            e = EntityId(prefab="test", sequence=i)
+            tree.insert(e, 100 + i * 50, 100 + i * 50, 100 + i * 50)
+            entities.append(e)
+
+        assert tree.count() == 10
+
+        # Remove entities one by one
+        for e in entities:
+            assert tree.remove(e)
+
+        assert tree.count() == 0
+
+    def test_query_all_from_subdivided_tree(self) -> None:
+        """Test query_all returns entities from all child nodes."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Low capacity to force subdivision
+        tree = Octree(bounds, max_entities_per_node=2, max_depth=4)
+
+        # Insert entities spread across different octants
+        entities = []
+        positions = [
+            (100, 100, 100),  # octant 0
+            (900, 100, 100),  # octant 1
+            (100, 900, 100),  # octant 2
+            (900, 900, 100),  # octant 3
+            (100, 100, 900),  # octant 4
+            (900, 100, 900),  # octant 5
+            (100, 900, 900),  # octant 6
+            (900, 900, 900),  # octant 7
+        ]
+        for i, (x, y, z) in enumerate(positions):
+            e = EntityId(prefab="test", sequence=i)
+            tree.insert(e, x, y, z)
+            entities.append(e)
+
+        # query_all should return all entities
+        results = list(tree.query_all())
+        assert len(results) == 8
+
+        result_ids = {r[0] for r in results}
+        for e in entities:
+            assert e in result_ids
+
+    def test_count_from_subdivided_tree(self) -> None:
+        """Test count returns correct count from subdivided tree."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Low capacity to force subdivision
+        tree = Octree(bounds, max_entities_per_node=2, max_depth=4)
+
+        # Insert entities to force subdivision
+        for i in range(20):
+            e = EntityId(prefab="test", sequence=i)
+            tree.insert(e, 100 + i * 40, 100 + i * 40, 100 + i * 40)
+
+        # Count should still be accurate
+        assert tree.count() == 20
+
+    def test_get_position_nonexistent(self) -> None:
+        """Test get_position returns None for nonexistent entity."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        tree = Octree(bounds)
+
+        entity_id = EntityId(prefab="test", sequence=999)
+        assert tree.get_position(entity_id) is None
+
+    def test_get_entity_ids(self) -> None:
+        """Test get_entity_ids returns all entity IDs."""
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        tree = Octree(bounds)
+
+        entities = []
+        for i in range(5):
+            e = EntityId(prefab="test", sequence=i)
+            tree.insert(e, 100 + i * 100, 100 + i * 100, 100 + i * 100)
+            entities.append(e)
+
+        ids = tree.get_entity_ids()
+        assert len(ids) == 5
+        for e in entities:
+            assert e in ids
+
+
+class TestOctreeNodeDirectly:
+    """Tests for OctreeNode methods directly."""
+
+    def test_node_count_with_children(self) -> None:
+        """Test OctreeNode.count() includes entities from children."""
+        from relics.addons.spatial.octree import OctreeNode
+
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Very low capacity to force subdivision
+        node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
+
+        # Insert entities to trigger subdivision
+        for i in range(4):
+            node.insert(EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200, 100 + i * 200)
+
+        # Verify children were created
+        assert node.children is not None
+
+        # count() should traverse children
+        assert node.count() == 4
+
+    def test_node_get_all_entities_with_children(self) -> None:
+        """Test OctreeNode.get_all_entities() includes entities from children."""
+        from relics.addons.spatial.octree import OctreeNode
+
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Very low capacity to force subdivision
+        node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
+
+        entities = []
+        for i in range(4):
+            e = EntityId(prefab="test", sequence=i)
+            node.insert(e, 100 + i * 200, 100 + i * 200, 100 + i * 200)
+            entities.append(e)
+
+        # Verify children were created
+        assert node.children is not None
+
+        # get_all_entities() should traverse children
+        results = list(node.get_all_entities())
+        assert len(results) == 4
+
+        result_ids = {r[0] for r in results}
+        for e in entities:
+            assert e in result_ids
+
+    def test_node_remove_from_children(self) -> None:
+        """Test OctreeNode.remove() from child nodes."""
+        from relics.addons.spatial.octree import OctreeNode
+
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Very low capacity to force subdivision
+        node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
+
+        entities = []
+        for i in range(4):
+            e = EntityId(prefab="test", sequence=i)
+            node.insert(e, 100 + i * 200, 100 + i * 200, 100 + i * 200)
+            entities.append(e)
+
+        # Verify children were created
+        assert node.children is not None
+
+        # Remove from child nodes
+        for e in entities:
+            assert node.remove(e)
+
+        assert node.count() == 0
+
+    def test_node_double_subdivide_no_effect(self) -> None:
+        """Test that calling _subdivide on already subdivided node has no effect."""
+        from relics.addons.spatial.octree import OctreeNode
+
+        bounds = OctreeBounds(
+            center_x=500, center_y=500, center_z=500,
+            half_width=500, half_height=500, half_depth=500
+        )
+        # Very low capacity to force subdivision
+        node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
+
+        # Insert to trigger subdivision
+        for i in range(4):
+            node.insert(EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200, 100 + i * 200)
+
+        assert node.children is not None
+        old_children = node.children
+
+        # Try to subdivide again
+        node._subdivide()
+
+        # Children should be the same (no effect)
+        assert node.children is old_children

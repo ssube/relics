@@ -672,6 +672,174 @@ class TestPrefabSpawnerCycleDetection:
             spawner.spawn("a")
 
 
+class TestPrefabSpawnerContextMerging:
+    """Tests for context and params merging."""
+
+    def test_spawn_with_existing_context_and_params(self) -> None:
+        """Test that params are merged into existing context."""
+        world = World()
+        prefab = ProceduralPrefab(
+            name="test",
+            params=[],
+            graph=GraphDefinition(
+                components=[
+                    ComponentVariant(
+                        component_type="Health",
+                        fields={"current": "@hp", "maximum": "@max_hp"},
+                    ),
+                ],
+            ),
+        )
+
+        spawner = PrefabSpawner(
+            registry={"test": prefab},
+            prefab_lists={},
+            world=world,
+            component_registry=TEST_REGISTRY,
+        )
+
+        # Create a context with some params
+        existing_context = GenerationContext(params={"hp": 50})
+
+        # Spawn with existing context AND additional params
+        entity = spawner.spawn("test", params={"max_hp": 100}, context=existing_context)
+
+        # Both params should be available
+        health = entity.get_component(Health)
+        assert health.current == 50  # From existing context
+        assert health.maximum == 100  # From additional params
+
+    def test_spawn_with_context_params_override(self) -> None:
+        """Test that params override existing context params."""
+        world = World()
+        prefab = ProceduralPrefab(
+            name="test",
+            params=[],
+            graph=GraphDefinition(
+                components=[
+                    ComponentVariant(
+                        component_type="Health",
+                        fields={"current": "@hp", "maximum": "@hp"},
+                    ),
+                ],
+            ),
+        )
+
+        spawner = PrefabSpawner(
+            registry={"test": prefab},
+            prefab_lists={},
+            world=world,
+            component_registry=TEST_REGISTRY,
+        )
+
+        # Create a context with hp=50
+        existing_context = GenerationContext(params={"hp": 50})
+
+        # Spawn with same param but different value
+        entity = spawner.spawn("test", params={"hp": 200}, context=existing_context)
+
+        # New params should override
+        health = entity.get_component(Health)
+        assert health.current == 200
+        assert health.maximum == 200
+
+
+class TestPrefabSpawnerAttachmentResolution:
+    """Tests for attachment prefab resolution edge cases."""
+
+    def test_attachment_from_list_with_none_resolution(self) -> None:
+        """Test attachment from_list when list name resolves to None."""
+        world = World()
+
+        character_prefab = ProceduralPrefab(
+            name="character",
+            params=[],
+            graph=GraphDefinition(
+                components=[],
+                attachments=[
+                    AttachmentDefinition(
+                        from_list="@missing_param",  # param reference that doesn't exist
+                        optional=True,
+                        slot="hand",
+                    ),
+                ],
+            ),
+        )
+
+        spawner = PrefabSpawner(
+            registry={"character": character_prefab},
+            prefab_lists={},
+            world=world,
+            component_registry=TEST_REGISTRY,
+        )
+
+        # Spawn without providing the param - list name resolves to None
+        character = spawner.spawn("character")
+        relationships = character.get_relationships(HasAttached)
+        assert len(relationships) == 0  # Optional attachment skipped
+
+    def test_attachment_skip_flag(self) -> None:
+        """Test attachment with skip flag set."""
+        world = World()
+
+        character_prefab = ProceduralPrefab(
+            name="character",
+            params=[],
+            graph=GraphDefinition(
+                components=[],
+                attachments=[
+                    AttachmentDefinition(
+                        skip=True,  # Skip this attachment
+                        slot="hand",
+                    ),
+                ],
+            ),
+        )
+
+        spawner = PrefabSpawner(
+            registry={"character": character_prefab},
+            prefab_lists={},
+            world=world,
+            component_registry=TEST_REGISTRY,
+        )
+
+        # Should skip the attachment
+        character = spawner.spawn("character")
+        relationships = character.get_relationships(HasAttached)
+        assert len(relationships) == 0
+
+    def test_attachment_prefab_resolves_to_none(self) -> None:
+        """Test attachment when static prefab reference resolves to None."""
+        world = World()
+
+        character_prefab = ProceduralPrefab(
+            name="character",
+            params=[],
+            graph=GraphDefinition(
+                components=[],
+                attachments=[
+                    AttachmentDefinition(
+                        prefab="@missing_param",  # param that doesn't exist
+                        optional=True,
+                        slot="hand",
+                    ),
+                ],
+            ),
+        )
+
+        spawner = PrefabSpawner(
+            registry={"character": character_prefab},
+            prefab_lists={},
+            world=world,
+            component_registry=TEST_REGISTRY,
+        )
+
+        # Without the param, prefab resolves to None
+        character = spawner.spawn("character")
+        relationships = character.get_relationships(HasAttached)
+        assert len(relationships) == 0
+
+
 class TestPrefabSpawnerDeterminism:
     """Tests for deterministic spawning."""
 
