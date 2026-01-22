@@ -18,7 +18,12 @@ jobs:
           apt-get install -y git
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git init
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          git fetch origin "$GITHUB_REF" --depth=1
+          git checkout FETCH_HEAD
 
       - name: Install dependencies
         run: |
@@ -53,7 +58,12 @@ jobs:
           apt-get install -y git
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git init
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          git fetch origin "$GITHUB_REF" --depth=1
+          git checkout FETCH_HEAD
 
       - name: Install dependencies
         run: |
@@ -63,10 +73,3 @@ jobs:
 
       - name: Run tests with coverage
         run: pytest tests/ --cov=src/relics --cov-report=term-missing --cov-report=xml
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        if: matrix.python-version == '3.11'
-        with:
-          name: coverage-report
-          path: coverage.xml
