@@ -5,7 +5,7 @@ from typing import Optional
 
 from relics import World
 
-from demo.components import (
+from demos.pygame.components import (
     BoundingBox,
     CameraInput,
     Color,
@@ -21,7 +21,7 @@ from demo.components import (
     Velocity,
     Viewport,
 )
-from demo.config import (
+from demos.pygame.config import (
     CAMERA_SIZE,
     CAMERA_SPEED,
     ENTITY_CAMERA,
@@ -55,6 +55,15 @@ from demo.config import (
 )
 
 
+layer_order = {
+    "tree": 0,
+    "stone": 1,
+    "flower": 2,
+    "rabbit": 3,
+    "fox": 4,
+}
+
+
 def register_prefabs(world: World) -> None:
     """Register all entity prefabs with the world."""
     # Rabbit prefab
@@ -64,7 +73,7 @@ def register_prefabs(world: World) -> None:
             Position: Position(x=0, y=0),
             Velocity: Velocity(vx=0, vy=0),
             BoundingBox: BoundingBox(width=RABBIT_SIZE, height=RABBIT_SIZE),
-            Sprite: Sprite(entity_type=ENTITY_RABBIT),
+            Sprite: Sprite(entity_type=ENTITY_RABBIT, layer=layer_order["rabbit"]),
             RabbitAI: RabbitAI(state=RabbitState.IDLE),
         },
     )
@@ -76,7 +85,7 @@ def register_prefabs(world: World) -> None:
             Position: Position(x=0, y=0),
             Velocity: Velocity(vx=0, vy=0),
             BoundingBox: BoundingBox(width=FOX_SIZE, height=FOX_SIZE),
-            Sprite: Sprite(entity_type=ENTITY_FOX),
+            Sprite: Sprite(entity_type=ENTITY_FOX, layer=layer_order["fox"]),
             FoxAI: FoxAI(state=FoxState.IDLE, target_id=None, sight_range=FOX_SIGHT_RANGE),
         },
     )
@@ -87,7 +96,7 @@ def register_prefabs(world: World) -> None:
         {
             Position: Position(x=0, y=0),
             BoundingBox: BoundingBox(width=TREE_SIZE, height=TREE_SIZE),
-            Sprite: Sprite(entity_type=ENTITY_TREE),
+            Sprite: Sprite(entity_type=ENTITY_TREE, layer=layer_order["tree"]),
             Obstacle: Obstacle(),
         },
     )
@@ -98,7 +107,7 @@ def register_prefabs(world: World) -> None:
         {
             Position: Position(x=0, y=0),
             BoundingBox: BoundingBox(width=STONE_SIZE, height=STONE_SIZE),
-            Sprite: Sprite(entity_type=ENTITY_STONE),
+            Sprite: Sprite(entity_type=ENTITY_STONE, layer=layer_order["stone"]),
             Obstacle: Obstacle(),
         },
     )
@@ -109,7 +118,7 @@ def register_prefabs(world: World) -> None:
         {
             Position: Position(x=0, y=0),
             BoundingBox: BoundingBox(width=FLOWER_SIZE, height=FLOWER_SIZE),
-            Sprite: Sprite(entity_type=ENTITY_FLOWER),
+            Sprite: Sprite(entity_type=ENTITY_FLOWER, layer=layer_order["flower"]),
             Consumable: Consumable(),
         },
     )

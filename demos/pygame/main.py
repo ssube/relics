@@ -9,12 +9,13 @@ import sys
 import pygame
 from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, QUIT
 
+from demos.pygame.components import CameraInput
 from relics import World
 
-from demo.camera import Camera
-from demo.config import SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
-from demo.prefabs import register_prefabs, spawn_initial_entities
-from demo.systems import (
+from demos.pygame.camera import Camera
+from demos.pygame.config import SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
+from demos.pygame.prefabs import register_prefabs, spawn_initial_entities
+from demos.pygame.systems import (
     BoundsSystem,
     CameraSystem,
     CollisionSystem,
@@ -51,7 +52,7 @@ def draw_hud(screen: pygame.Surface, world: World, fps: float) -> None:
     font = pygame.font.Font(None, 24)
 
     # Count entities
-    from demo.components import Consumable, FoxAI, GameStats, RabbitAI, Viewport
+    from demos.pygame.components import Consumable, FoxAI, GameStats, RabbitAI, Viewport
 
     rabbit_count = sum(1 for _ in world.query().with_all([RabbitAI]).execute_ids())
     fox_count = sum(1 for _ in world.query().with_all([FoxAI]).execute_ids())
@@ -139,15 +140,6 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
-            elif event.type == KEYDOWN:
-                if event.key == K_ESCAPE:
-                    running = False
-                elif event.key == K_SPACE:
-                    paused = not paused
-                    if paused:
-                        print("Paused")
-                    else:
-                        print("Resumed")
 
         # Update input (always, even when paused for responsiveness)
         input_system.update()
@@ -155,6 +147,15 @@ def main() -> None:
         # Update simulation (only when not paused)
         if not paused:
             world.tick(delta)
+
+        # Check the camera input component for the pause/quit signals
+        for entity in world.query().with_all([CameraInput]).execute_entities():
+            camera_input = entity.get_component(CameraInput)
+            if camera_input.quit:
+                running = False
+            if camera_input.pause:
+                paused = not paused
+            break
 
         # Render
         render_system.render()

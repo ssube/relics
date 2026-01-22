@@ -1,7 +1,6 @@
 """Camera helper for coordinate conversion and viewport management."""
 
-from demo.config import WORLD_HEIGHT, WORLD_WIDTH
-
+from demos.pygame.config import WORLD_HEIGHT, WORLD_WIDTH
 
 class Camera:
     """

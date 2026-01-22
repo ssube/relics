@@ -8,8 +8,8 @@ import pygame
 
 from relics import Frequency, RunOrder, System, World
 
-from demo.camera import Camera
-from demo.components import (
+from demos.pygame.camera import Camera
+from demos.pygame.components import (
     BoundingBox,
     CameraInput,
     Color,
@@ -25,7 +25,7 @@ from demo.components import (
     Velocity,
     Viewport,
 )
-from demo.config import (
+from demos.pygame.config import (
     CAMERA_SPEED,
     COLORS,
     ENTITY_FLOWER,
@@ -270,7 +270,7 @@ class BoundsSystem(System):
     def query(self):
         return self.q.with_all([Position, BoundingBox])
 
-    def deps(self):
+    def deps(self) -> dict[RunOrder, list[type[System]]]:
         return {RunOrder.AFTER: [MovementSystem]}
 
     def process(self, entities, components, delta):
@@ -314,7 +314,7 @@ class CollisionSystem(System):
     def query(self):
         return self.q.with_all([Position, BoundingBox])
 
-    def deps(self):
+    def deps(self) -> dict[RunOrder, list[type[System]]]:
         return {RunOrder.AFTER: [BoundsSystem]}
 
     def process(self, entities, components, delta):
@@ -531,6 +531,11 @@ class RenderSystem:
 
     def render(self) -> None:
         """Render all visible entities."""
+        # Get all cameras in the world
+        cameras = self.world.query().with_all([CameraInput, Viewport]).execute_entities()
+        if not cameras:
+            return  # No camera to render from
+
         # Fill background with grass color
         self.screen.fill(COLORS["GRASS"])
 
@@ -546,7 +551,7 @@ class RenderSystem:
             break
 
         # Query all renderable entities
-        renderables = []
+        renderables: list[tuple[Position, Sprite, BoundingBox, tuple[int, int, int]]] = []
         for entity in self.world.query().with_all([Position, Sprite, BoundingBox]).execute_entities():
             # Skip camera entity
             if entity.has_component(Viewport):
@@ -568,14 +573,7 @@ class RenderSystem:
                 renderables.append((pos, sprite, bbox, color))
 
         # Sort by entity type for consistent layering (trees behind animals)
-        layer_order = {
-            "tree": 0,
-            "stone": 1,
-            "flower": 2,
-            "rabbit": 3,
-            "fox": 4,
-        }
-        renderables.sort(key=lambda r: layer_order.get(r[1].entity_type, 5))
+        renderables.sort(key=lambda r: r[1].layer, reverse=False)
 
         # Draw entities
         for pos, sprite, bbox, color in renderables:
@@ -610,4 +608,6 @@ class InputSystem:
             camera_input.move_up = keys[pygame.K_w]
             camera_input.move_down = keys[pygame.K_s]
             camera_input.sprint = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+            camera_input.pause = keys[pygame.K_SPACE]
+            camera_input.quit = keys[pygame.K_ESCAPE]
             break

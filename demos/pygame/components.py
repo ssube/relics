@@ -37,6 +37,7 @@ class Sprite(Component):
     """Entity type for color/sprite lookup."""
 
     entity_type: str
+    layer: int = 0  # Rendering layer (lower renders first)
 
 
 class RabbitState(Enum):
@@ -110,6 +111,8 @@ class CameraInput(Component):
     move_up: bool = False
     move_down: bool = False
     sprint: bool = False  # Shift key for 2x speed
+    pause: bool = False  # Toggle pause with spacebar
+    quit: bool = False  # Quit signal
 
 
 @dataclass

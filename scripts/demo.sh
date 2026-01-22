@@ -28,4 +28,4 @@ fi
 echo "Starting ecosystem demo..."
 echo "Controls: WASD=scroll, Space=pause, Escape=quit"
 echo ""
-python -m demo.main
+python -m demos.pygame.main
