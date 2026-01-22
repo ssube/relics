@@ -720,6 +720,170 @@ class TestIndexPerformance:
 
         print(f"\nMaterialized speedup: {elapsed_lazy / elapsed_mat:.2f}x")
 
+    @pytest.mark.parametrize("scale", PERF_SCALES[:2], ids=PERF_SCALE_IDS[:2])
+    def test_get_entity_ids_performance(self, scale: int) -> None:
+        """Benchmark get_entity_ids() for lazy vs materialized indexes."""
+        world = create_world_with_entities(scale, "complex")
+
+        query_lazy = world.query().with_all([Position, Health])
+        query_mat = world.query().with_all([Position, Health])
+
+        lazy_index = world.create_index("lazy_ids", query_lazy, materialized=False)
+        mat_index = world.create_index(
+            "mat_ids", query_mat, watches=[Position, Health], materialized=True
+        )
+
+        # Force initialization of materialized index
+        mat_index.get_entity_ids()
+
+        iterations = 100
+
+        elapsed_lazy = measure_time(lambda: lazy_index.get_entity_ids(), iterations)
+        elapsed_mat = measure_time(lambda: mat_index.get_entity_ids(), iterations)
+
+        result_lazy = PerfResult(
+            f"lazy_index_get_entity_ids (n={scale})", scale, iterations, elapsed_lazy
+        )
+        result_mat = PerfResult(
+            f"materialized_index_get_entity_ids (n={scale})",
+            scale,
+            iterations,
+            elapsed_mat,
+        )
+
+        result_lazy.print_report()
+        result_mat.print_report()
+
+        print(f"\nMaterialized speedup: {elapsed_lazy / elapsed_mat:.2f}x")
+
+    @pytest.mark.parametrize("scale", PERF_SCALES[:2], ids=PERF_SCALE_IDS[:2])
+    def test_query_with_index_performance(self, scale: int) -> None:
+        """Benchmark query with with_index() constraint."""
+        world = create_world_with_entities(scale, "complex")
+
+        # Create a materialized index matching ~50% of entities
+        def has_high_health(entity):
+            h = entity.get_component(Health)
+            return h.current > 50
+
+        subset_query = world.query().with_all([Health]).with_filter(has_high_health)
+        subset_index = world.create_index(
+            "high_health", subset_query, watches=[Health], materialized=True
+        )
+
+        # Force initialization
+        subset_index.count()
+
+        iterations = 100
+
+        # Query without index constraint
+        def query_all() -> None:
+            list(world.query().with_all([Position, Health]).execute_ids())
+
+        # Query with index constraint (should be faster)
+        def query_with_index() -> None:
+            list(
+                world.query()
+                .with_all([Position, Health])
+                .with_index(subset_index)
+                .execute_ids()
+            )
+
+        elapsed_all = measure_time(query_all, iterations)
+        elapsed_indexed = measure_time(query_with_index, iterations)
+
+        result_all = PerfResult(
+            f"query_without_index (n={scale})", scale, iterations, elapsed_all
+        )
+        result_indexed = PerfResult(
+            f"query_with_index (n={scale})", scale, iterations, elapsed_indexed
+        )
+
+        result_all.print_report()
+        result_indexed.print_report()
+
+        speedup = elapsed_all / elapsed_indexed if elapsed_indexed > 0 else float("inf")
+        print(f"\nwith_index speedup: {speedup:.2f}x")
+
+    @pytest.mark.parametrize("scale", PERF_SCALES[:2], ids=PERF_SCALE_IDS[:2])
+    def test_query_without_index_performance(self, scale: int) -> None:
+        """Benchmark query with without_index() constraint."""
+        world = create_world_with_entities(scale, "complex")
+
+        # Create a materialized index matching ~50% of entities
+        def has_low_health(entity):
+            h = entity.get_component(Health)
+            return h.current <= 50
+
+        exclude_query = world.query().with_all([Health]).with_filter(has_low_health)
+        exclude_index = world.create_index(
+            "low_health", exclude_query, watches=[Health], materialized=True
+        )
+
+        # Force initialization
+        exclude_index.count()
+
+        iterations = 100
+
+        # Query with exclusion index (find high health entities)
+        def query_with_exclusion() -> None:
+            list(
+                world.query()
+                .with_all([Position, Health])
+                .without_index(exclude_index)
+                .execute_ids()
+            )
+
+        elapsed = measure_time(query_with_exclusion, iterations)
+
+        result = PerfResult(
+            f"query_without_index_exclusion (n={scale})", scale, iterations, elapsed
+        )
+        result.print_report()
+
+    @pytest.mark.parametrize("scale", PERF_SCALES[:2], ids=PERF_SCALE_IDS[:2])
+    def test_query_combined_index_operations(self, scale: int) -> None:
+        """Benchmark query with both with_index and without_index."""
+        world = create_world_with_entities(scale, "complex")
+
+        # Include: entities with Position
+        include_query = world.query().with_all([Position])
+        include_index = world.create_index(
+            "positioned", include_query, materialized=True
+        )
+
+        # Exclude: entities with AI (subset of positioned)
+        exclude_query = world.query().with_all([AI])
+        exclude_index = world.create_index("has_ai", exclude_query, materialized=True)
+
+        # Force initialization
+        include_index.count()
+        exclude_index.count()
+
+        iterations = 100
+
+        # Combined: in positioned but not has_ai
+        def query_combined() -> None:
+            list(
+                world.query()
+                .with_index(include_index)
+                .without_index(exclude_index)
+                .execute_ids()
+            )
+
+        elapsed = measure_time(query_combined, iterations)
+
+        result = PerfResult(
+            f"query_combined_indexes (n={scale})", scale, iterations, elapsed
+        )
+        result.print_report()
+
+        include_count = include_index.count()
+        exclude_count = exclude_index.count()
+        print(f"Include index size: {include_count:,}")
+        print(f"Exclude index size: {exclude_count:,}")
+        print(f"Expected result size: ~{include_count - exclude_count:,}")
+
 
 # =============================================================================
 # Test: Observer Queue Performance

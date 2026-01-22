@@ -18,6 +18,7 @@ from relics.entity import Entity
 from relics.types import Component, Edge, EntityId
 
 if TYPE_CHECKING:
+    from relics.index import IndexView
     from relics.world import World
 
 
@@ -43,6 +44,9 @@ class QueryBuilder:
         # Relationship criteria
         self._with_relationships: List[Tuple[Type[Edge], Optional[EntityId]]] = []
         self._with_incoming: List[Tuple[Type[Edge], Optional[EntityId]]] = []
+        # Index criteria
+        self._with_indexes: List["IndexView"] = []
+        self._without_indexes: List["IndexView"] = []
 
     def with_all(self, component_types: List[Type[Component]]) -> "QueryBuilder":
         """Entities must have ALL of these components.
@@ -136,6 +140,43 @@ class QueryBuilder:
         self._with_incoming.append((edge_type, source))
         return self
 
+    def with_index(self, index: "IndexView") -> "QueryBuilder":
+        """Entities must be in this index.
+
+        Uses set intersection for efficient filtering. Works best with
+        materialized indexes which have O(1) access to their entity set.
+
+        Args:
+            index: The index to intersect with.
+
+        Returns:
+            Self for method chaining.
+
+        Example:
+            >>> alive_index = world.index("alive")
+            >>> query = world.query().with_all([Health]).with_index(alive_index)
+        """
+        self._with_indexes.append(index)
+        return self
+
+    def without_index(self, index: "IndexView") -> "QueryBuilder":
+        """Entities must NOT be in this index.
+
+        Uses set difference for efficient filtering.
+
+        Args:
+            index: The index to exclude entities from.
+
+        Returns:
+            Self for method chaining.
+
+        Example:
+            >>> dead_index = world.index("dead")
+            >>> query = world.query().with_all([Health]).without_index(dead_index)
+        """
+        self._without_indexes.append(index)
+        return self
+
     def _matches(
         self,
         entity_id: EntityId,
@@ -197,35 +238,49 @@ class QueryBuilder:
         return True
 
     def _get_candidates(self) -> Set[EntityId]:
-        """Get candidate entity IDs using the component index.
+        """Get candidate entity IDs using component and secondary indexes.
 
-        Uses set intersection for with_all queries to avoid full scans.
-        Returns all entity IDs if no with_all constraint is specified.
+        Uses set intersection for with_all and with_index queries,
+        and set difference for without_index queries.
+        Returns all entity IDs if no constraints are specified.
 
         Returns:
             Set of candidate entity IDs to filter.
         """
-        if not self._with_all:
-            # No with_all constraint, must scan all entities
-            return set(self._world._entities.keys())
+        # Collect all candidate sets for intersection
+        candidate_sets: List[Set[EntityId]] = []
 
-        # Get entity sets for each required component type
-        candidate_sets = [
-            self._world.get_entities_with_component(ct) for ct in self._with_all
-        ]
+        # Add component index sets
+        for ct in self._with_all:
+            candidate_sets.append(self._world.get_entities_with_component(ct))
 
-        # If any component has no entities, return empty set
-        if not all(candidate_sets):
+        # Add secondary index sets (with_index)
+        for index in self._with_indexes:
+            candidate_sets.append(index.get_entity_ids())
+
+        # If any required set is empty, return empty set
+        if candidate_sets and not all(candidate_sets):
             return set()
 
-        # Find the smallest set to start intersection (optimization)
-        result = min(candidate_sets, key=len).copy()
+        # If no constraints, start with all entities
+        if not candidate_sets:
+            result = set(self._world._entities.keys())
+        else:
+            # Find the smallest set to start intersection (optimization)
+            result = min(candidate_sets, key=len).copy()
 
-        # Intersect with all other sets
-        for s in candidate_sets:
-            if s is not result:
-                result &= s
-                # Early exit if intersection becomes empty
+            # Intersect with all other sets
+            for s in candidate_sets:
+                if s is not result:
+                    result &= s
+                    # Early exit if intersection becomes empty
+                    if not result:
+                        return set()
+
+        # Apply exclusion indexes (without_index)
+        for index in self._without_indexes:
+            if result:  # Only compute if we still have candidates
+                result -= index.get_entity_ids()
                 if not result:
                     return set()
 

@@ -37,6 +37,18 @@ class IndexView(ABC):
         """
         pass  # abstract
 
+    @abstractmethod
+    def get_entity_ids(self) -> Set[EntityId]:
+        """Get the set of entity IDs in this index.
+
+        This is used for efficient set operations in query building.
+        Returns a copy to prevent external modification.
+
+        Returns:
+            Set of entity IDs matching the index criteria.
+        """
+        pass  # abstract
+
     def __len__(self) -> int:
         """Get the number of entities in the index."""
         return self.count()
@@ -65,6 +77,10 @@ class LazyIndex(IndexView):
     def count(self) -> int:
         """Count matching entities by executing the query."""
         return sum(1 for _ in self._query.execute_entities())
+
+    def get_entity_ids(self) -> Set[EntityId]:
+        """Get entity IDs by executing the query."""
+        return set(self._query.execute_ids())
 
 
 class MaterializedIndex(IndexView):
@@ -146,3 +162,8 @@ class MaterializedIndex(IndexView):
         """Get the count from cache."""
         self._ensure_initialized()
         return len(self._cache)
+
+    def get_entity_ids(self) -> Set[EntityId]:
+        """Get entity IDs from cache (O(1) copy)."""
+        self._ensure_initialized()
+        return self._cache.copy()
