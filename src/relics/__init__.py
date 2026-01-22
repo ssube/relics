@@ -44,6 +44,7 @@ from relics.observer import (
 
 # Persistence
 from relics.persistence import (
+    InMemoryPersistenceDriver,
     JSONPersistenceDriver,
     PersistenceDriver,
     RelicInfo,
@@ -114,6 +115,7 @@ __all__ = [
     "LazyIndex",
     "MaterializedIndex",
     # Persistence
+    "InMemoryPersistenceDriver",
     "JSONPersistenceDriver",
     "PersistenceDriver",
     "RelicInfo",

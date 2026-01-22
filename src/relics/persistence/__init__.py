@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Type
 
 from relics.persistence.base import PersistenceDriver, RelicInfo
 from relics.persistence.drivers.json import JSONPersistenceDriver
+from relics.persistence.drivers.memory import InMemoryPersistenceDriver
 from relics.persistence.drivers.sqlite import SQLitePersistenceDriver
 from relics.persistence.serialization import _component_to_dict, _dict_to_component
 from relics.types import Component, Edge
@@ -146,6 +147,7 @@ __all__ = [
     "PersistenceDriver",
     "RelicInfo",
     # Drivers
+    "InMemoryPersistenceDriver",
     "JSONPersistenceDriver",
     "SQLitePersistenceDriver",
     # Serialization helpers (for internal use)
