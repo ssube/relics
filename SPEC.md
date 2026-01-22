@@ -25,6 +25,27 @@ Relic is an engine-agnostic Entity-Component-System (ECS) framework with graph d
 - **Multiple Worlds**: Can run in parallel threads (useful for testing)
 - Thread-safety within a world is deferred to the Rust port
 
+### Development Guide
+
+- Pydantic dataclasses for data structures
+- Type hints for clarity
+- 95%+ unit test coverage
+- Comprehensive documentation and examples
+- CI/CD with automated testing and linting
+- Semantic commit messages
+- Do not worry about semantic versioning until v1.0 is stable
+- Avoid abbreviations in names for clarity
+- Avoid overly Pythonic idioms to facilitate Rust porting
+- Use Result/Either return types for error handling in Rust port
+- Fail-fast philosophy: return an error immediately on invalid operations
+- Document all public APIs and behaviors
+- Use consistent naming conventions (e.g., CamelCase for classes, snake_case for functions)
+- Modular design: separate concerns into distinct modules/files
+- Use the language's logging facilities for debug/info/error messages
+- Write clear and descriptive commit messages
+- Commit frequently with small, focused changes
+- Write tests alongside implementation
+
 ---
 
 ## Core Concepts
@@ -39,10 +60,10 @@ class EntityId:
     """Structured entity identifier."""
     prefab: str
     sequence: int  # Per-prefab timestamp + collision counter
-    
+
     def __str__(self) -> str:
         return f"{self.prefab}_{self.sequence}"
-    
+
     @classmethod
     def parse(cls, s: str) -> "EntityId":
         """Parse string representation back to EntityId."""
@@ -116,7 +137,7 @@ from relic import Edge, RelationshipValidationError
 @dataclass
 class AllyTo(Edge):
     trust_level: float = 1.0
-    
+
     def validate(self, source: "Entity", target: "Entity") -> bool:
         """Called at relationship creation. Raise on invalid."""
         if not (source.has_component(Team) and target.has_component(Team)):
@@ -129,7 +150,7 @@ class AllyTo(Edge):
             )
         return True
 
-@dataclass  
+@dataclass
 class ParentOf(Edge):
     """Hierarchical relationship with no additional data."""
     pass
@@ -154,48 +175,48 @@ Live handle that always reflects current world state.
 ```python
 class Entity:
     """Live handle to an entity. Always reflects current world state."""
-    
+
     @property
     def id(self) -> EntityId:
         """The entity's unique identifier."""
         ...
-    
+
     @property
     def prefab(self) -> str:
         """The prefab this entity was instantiated from."""
         ...
-    
+
     # Components
     def get_component(self, component_type: Type[T]) -> T:
         """Get component. Raises ComponentNotFoundError if missing."""
         ...
-    
+
     def has_component(self, component_type: Type[Component]) -> bool:
         """Check if entity has component."""
         ...
-    
+
     def add_component(self, component: Component) -> None:
         """Add component. Raises DuplicateComponentError if exists."""
         ...
-    
+
     def remove_component(self, component_type: Type[Component]) -> None:
         """Remove component. Raises ComponentNotFoundError if missing."""
         ...
-    
+
     # Relationships (outgoing)
     def add_relationship(self, edge: Edge, target: EntityId) -> None:
         """Create relationship. Runs edge.validate() first."""
         ...
-    
+
     def remove_relationship(self, edge_type: Type[Edge], target: EntityId) -> None:
         """Remove specific relationship."""
         ...
-    
+
     def get_relationships(self, edge_type: Type[Edge]) -> List[Tuple[Edge, EntityId]]:
         """Get all outgoing relationships of this edge type."""
         ...
-    
-    # Relationships (incoming)  
+
+    # Relationships (incoming)
     def get_incoming_relationships(self, edge_type: Type[Edge]) -> List[Tuple[EntityId, Edge]]:
         """Get all incoming relationships of this edge type."""
         ...
@@ -215,52 +236,52 @@ class QueryBuilder:
     def with_all(self, component_types: List[Type[Component]]) -> "QueryBuilder":
         """Entities must have ALL of these components."""
         ...
-    
+
     def with_any(self, component_types: List[Type[Component]]) -> "QueryBuilder":
         """Entities must have AT LEAST ONE of these components."""
         ...
-    
+
     def with_none(self, component_types: List[Type[Component]]) -> "QueryBuilder":
         """Entities must have NONE of these components."""
         ...
-    
+
     # Relationship selectors
     def with_relationship(
-        self, 
-        edge_type: Type[Edge], 
+        self,
+        edge_type: Type[Edge],
         target: Optional[EntityId] = None
     ) -> "QueryBuilder":
         """Entities must have outgoing relationship of this type.
         If target specified, must be to that specific entity."""
         ...
-    
+
     def with_incoming(
-        self, 
-        edge_type: Type[Edge], 
+        self,
+        edge_type: Type[Edge],
         source: Optional[EntityId] = None
     ) -> "QueryBuilder":
         """Entities must have incoming relationship of this type."""
         ...
-    
+
     # Predicate selectors
     def with_filter(self, predicate: Callable[[Entity], bool]) -> "QueryBuilder":
         """Entities must pass this predicate function."""
         ...
-    
+
     # Batch optimization
     def iterate(self, component_types: List[Type[Component]]) -> "QueryBuilder":
         """Prepare component arrays for batch processing."""
         ...
-    
+
     # Execution
     def execute_ids(self) -> Iterator[EntityId]:
         """Return matching entity IDs only."""
         ...
-    
+
     def execute_entities(self) -> Iterator[Entity]:
         """Return live Entity handles."""
         ...
-    
+
     def execute_components(self) -> Iterator[Tuple[EntityId, ...]]:
         """Return entity ID with requested components (from iterate())."""
         ...
@@ -320,45 +341,45 @@ class RunOrder(Enum):
 class Frequency:
     """Execution frequency configuration."""
     EVERY_TICK: ClassVar["Frequency"]
-    
+
     @staticmethod
     def every_n_ticks(n: int) -> "Frequency": ...
-    
+
     @staticmethod
     def fixed_interval(seconds: float) -> "Frequency": ...
 
 class System:
     """Base class for all systems."""
-    
+
     # Wildcard for dependency ordering
     WILDCARD: ClassVar[Type["System"]]
-    
+
     @property
     def q(self) -> QueryBuilder:
         """Convenience accessor for fresh query builder."""
         return self.world.query()
-    
+
     def query(self) -> QueryBuilder:
         """Override: Define which entities this system processes."""
         raise NotImplementedError
-    
+
     def deps(self) -> Dict[RunOrder, List[Type["System"]]]:
         """Override: Declare execution order dependencies."""
         return {}
-    
+
     def frequency(self) -> Frequency:
         """Override: Control execution frequency."""
         return Frequency.EVERY_TICK
-    
+
     def process(
-        self, 
-        entities: List[Entity], 
-        components: List[List[Component]], 
+        self,
+        entities: List[Entity],
+        components: List[List[Component]],
         delta: float
     ) -> None:
         """Override: Implement system logic."""
         raise NotImplementedError
-    
+
     def sub_systems(self) -> List[Tuple[QueryBuilder, Callable]]:
         """Override: Define sub-systems with separate queries."""
         return []
@@ -369,19 +390,19 @@ class System:
 ```python
 class MovementSystem(System):
     """Applies velocity to position."""
-    
+
     def query(self) -> QueryBuilder:
         return (self.q
             .with_all([Position, Velocity])
             .with_none([Dead])
             .iterate([Position, Velocity]))
-    
+
     def deps(self) -> Dict[RunOrder, List[Type[System]]]:
         return {
             RunOrder.AFTER: [InputSystem],
             RunOrder.BEFORE: [CollisionSystem],
         }
-    
+
     def process(self, entities, components, delta):
         positions, velocities = components
         for i, entity in enumerate(entities):
@@ -392,7 +413,7 @@ class MovementSystem(System):
 
 class DamageSystem(System):
     """Handles damage and health regeneration via sub-systems."""
-    
+
     def sub_systems(self):
         return [
             (self.q.with_all([Health, DamageReceived]), self.apply_damage),
@@ -400,17 +421,17 @@ class DamageSystem(System):
                 .with_none([Dead])
                 .iterate([Health, Regenerating]), self.regenerate),
         ]
-    
+
     def apply_damage(self, entities, components, delta):
         for entity in entities:
             health = entity.get_component(Health)
             damage = entity.get_component(DamageReceived)
             health.current -= damage.amount
             entity.remove_component(DamageReceived)
-            
+
             if health.current <= 0:
                 entity.add_component(Dead())
-    
+
     def regenerate(self, entities, components, delta):
         healths, regens = components
         for i, entity in enumerate(entities):
@@ -422,13 +443,13 @@ class DamageSystem(System):
 
 class CleanupSystem(System):
     """Runs after all other systems."""
-    
+
     def query(self):
         return self.q.with_all([MarkedForDeletion])
-    
+
     def deps(self):
         return {RunOrder.AFTER: [System.WILDCARD]}
-    
+
     def process(self, entities, components, delta):
         for entity in entities:
             self.world.remove(entity)
@@ -452,7 +473,7 @@ Observers react to events. They are queued by default (processed at end of tick)
 ```python
 class Observer:
     """Base class for all observers."""
-    
+
     # Future: immediate vs queued execution
     # queued: bool = True  # Default: process at end of tick
 
@@ -460,7 +481,7 @@ class Observer:
 class OnComponentAdded(Observer):
     """Triggered when a component is added to an entity."""
     component_type: Type[Component]  # Override in subclass
-    
+
     def on_component_added(self, entity: Entity, component: Component) -> None:
         ...
 
@@ -468,7 +489,7 @@ class OnComponentAdded(Observer):
 class OnComponentRemoved(Observer):
     """Triggered when a component is removed from an entity."""
     component_type: Type[Component]
-    
+
     def on_component_removed(self, entity: Entity, component: Component) -> None:
         ...
 
@@ -478,11 +499,11 @@ class OnComponentChanged(Observer):
     Requires the component class to have @monitored decorator.
     """
     component_type: Type[Component]
-    
+
     def on_component_changed(
-        self, 
-        entity: Entity, 
-        old_value: Component, 
+        self,
+        entity: Entity,
+        old_value: Component,
         new_value: Component
     ) -> None:
         ...
@@ -491,11 +512,11 @@ class OnComponentChanged(Observer):
 class OnRelationshipAdded(Observer):
     """Triggered when a relationship is created."""
     edge_type: Type[Edge]
-    
+
     def on_relationship_added(
-        self, 
-        source: Entity, 
-        edge: Edge, 
+        self,
+        source: Entity,
+        edge: Edge,
         target: Entity
     ) -> None:
         ...
@@ -504,11 +525,11 @@ class OnRelationshipAdded(Observer):
 class OnRelationshipRemoved(Observer):
     """Triggered when a relationship is destroyed."""
     edge_type: Type[Edge]
-    
+
     def on_relationship_removed(
-        self, 
-        source: Entity, 
-        edge: Edge, 
+        self,
+        source: Entity,
+        edge: Edge,
         target: Entity
     ) -> None:
         ...
@@ -517,7 +538,7 @@ class OnRelationshipRemoved(Observer):
 class OnEntityCreated(Observer):
     """Triggered when an entity is spawned."""
     prefab: Optional[str] = None  # None = all prefabs
-    
+
     def on_entity_created(self, entity: Entity) -> None:
         ...
 
@@ -525,7 +546,7 @@ class OnEntityCreated(Observer):
 class OnEntityDestroyed(Observer):
     """Triggered when an entity is removed."""
     prefab: Optional[str] = None
-    
+
     def on_entity_destroyed(self, entity: Entity) -> None:
         ...
 
@@ -533,7 +554,7 @@ class OnEntityDestroyed(Observer):
 class OnCustomEvent(Observer):
     """Triggered by user-defined events."""
     event_type: Type["CustomEvent"]
-    
+
     def on_event(self, event: "CustomEvent") -> None:
         ...
 ```
@@ -564,7 +585,7 @@ world.emit(EntityDied(entity_id, killer_id))
 class DeathObserver(OnComponentAdded):
     """Emit EntityDied event when Dead component is added."""
     component_type = Dead
-    
+
     def on_component_added(self, entity: Entity, component: Dead):
         self.world.emit(EntityDied(entity.id))
 
@@ -572,7 +593,7 @@ class DeathObserver(OnComponentAdded):
 class HealthBarObserver(OnComponentChanged):
     """Update UI when health changes."""
     component_type = Health
-    
+
     def on_component_changed(self, entity, old_health, new_health):
         if new_health.current < old_health.current:
             # Took damage - flash red
@@ -582,7 +603,7 @@ class HealthBarObserver(OnComponentChanged):
 class ScoreObserver(OnCustomEvent):
     """Track score when entities die."""
     event_type = EntityDied
-    
+
     def on_event(self, event: EntityDied):
         if event.killer:
             killer = self.world.get_entity(event.killer)
@@ -932,48 +953,49 @@ class PrefabNotFoundError(RelicError):
 ```python
 class World:
     """Central manager for all entities, systems, and observers."""
-    
+    id: str  # Unique world identifier
+
     # Entity management
     def spawn(
-        self, 
-        prefab: str, 
+        self,
+        prefab: str,
         components: Optional[Dict[Type[Component], Component]] = None
     ) -> Entity:
         """Create entity from prefab with optional component overrides."""
         ...
-    
+
     def get_entity(self, entity_id: EntityId) -> Entity:
         """Get live handle to entity. Raises EntityNotFoundError."""
         ...
-    
+
     def remove(self, entity: Union[Entity, EntityId]) -> None:
         """Remove entity from world."""
         ...
-    
+
     def has_entity(self, entity_id: EntityId) -> bool:
         """Check if entity exists."""
         ...
-    
+
     # Queries
     def query(self) -> QueryBuilder:
         """Create new query builder."""
         ...
-    
+
     # Systems
     def register_system(self, system: System) -> None:
         """Register system. Raises SystemDependencyCycleError on cycle."""
         ...
-    
+
     # Observers
     def observe(self, observer: Observer) -> None:
         """Register observer for events."""
         ...
-    
+
     # Custom events
     def emit(self, event: CustomEvent) -> None:
         """Emit custom event to observers."""
         ...
-    
+
     # Indexes
     def create_index(
         self,
@@ -984,11 +1006,11 @@ class World:
     ) -> None:
         """Create secondary index."""
         ...
-    
+
     def index(self, name: str) -> IndexView:
         """Access named index."""
         ...
-    
+
     # Spatial indexes
     def create_spatial_index(
         self,
@@ -999,21 +1021,21 @@ class World:
     ) -> None:
         """Create spatial index."""
         ...
-    
+
     def spatial(self, name: str) -> SpatialIndex:
         """Access named spatial index."""
         ...
-    
+
     # Execution
     def tick(self, delta: float) -> None:
         """Advance epoch, run systems, process observer queue."""
         ...
-    
+
     @property
     def epoch(self) -> int:
         """Current epoch number."""
         ...
-    
+
     # Persistence
     def configure_persistence(
         self,
@@ -1023,37 +1045,37 @@ class World:
     ) -> None:
         """Configure automatic persistence."""
         ...
-    
+
     def save(self, path: Optional[str] = None) -> None:
         """Manual save to configured or specified path."""
         ...
-    
+
     def load(self, path: str) -> None:
         """Load world state from file."""
         ...
-    
+
     def save_relic(self, name: str, overwrite: bool = False) -> None:
         """Save named snapshot."""
         ...
-    
+
     def load_relic(self, name: str) -> None:
         """Load named snapshot."""
         ...
-    
+
     def list_relics(self) -> List[RelicInfo]:
         """List available relics."""
         ...
-    
+
     # Export
     def export_entity(self, entity_id: EntityId) -> Dict:
         """Export single entity as structured dict (for tooling)."""
         ...
-    
+
     # Prefabs
     def register_prefab(self, name: str, components: Dict[Type[Component], Component]) -> None:
         """Register prefab programmatically."""
         ...
-    
+
     def load_prefabs(self, path: str) -> None:
         """Load prefabs from JSON file."""
         ...
@@ -1103,7 +1125,7 @@ class Team(Component):
 @dataclass
 class AllyTo(Edge):
     trust_level: float = 1.0
-    
+
     def validate(self, source, target):
         if not (source.has_component(Team) and target.has_component(Team)):
             raise RelationshipValidationError("Both need Team")
@@ -1122,10 +1144,10 @@ class MovementSystem(System):
             .with_all([Position, Velocity])
             .with_none([Dead])
             .iterate([Position, Velocity]))
-    
+
     def deps(self):
         return {RunOrder.BEFORE: [CollisionSystem]}
-    
+
     def process(self, entities, components, delta):
         positions, velocities = components
         for i in range(len(entities)):
@@ -1135,7 +1157,7 @@ class MovementSystem(System):
 class CollisionSystem(System):
     def query(self):
         return self.q.with_all([Position, Collider])
-    
+
     def process(self, entities, components, delta):
         # Collision detection logic
         pass
@@ -1143,24 +1165,24 @@ class CollisionSystem(System):
 # Observers
 class DeathObserver(OnComponentAdded):
     component_type = Dead
-    
+
     def on_component_added(self, entity, component):
         self.world.emit(EntityDied(entity.id))
 
 # Main
 def main():
     world = World()
-    
+
     # Load prefabs
     world.load_prefabs("prefabs.json")
-    
+
     # Register systems (order doesn't matter - deps() determines order)
     world.register_system(MovementSystem())
     world.register_system(CollisionSystem())
-    
+
     # Register observers
     world.observe(DeathObserver())
-    
+
     # Create spatial index
     world.create_spatial_index(
         name="positions",
@@ -1168,27 +1190,27 @@ def main():
         fields=["x", "y", "z"],
         structure="octree"
     )
-    
+
     # Configure persistence
     world.configure_persistence(
         backend="sqlite",
         path="game.db",
         trigger=PersistenceTrigger.ON_EPOCH
     )
-    
+
     # Spawn entities
     player = world.spawn("player")
     ally = world.spawn("player", {Position: Position(10, 0, 0)})
-    
+
     # Create relationship
     player.add_relationship(AllyTo(trust_level=1.0), ally.id)
-    
+
     # Game loop
     running = True
     while running:
         delta = 1/60  # 60 FPS
         world.tick(delta)
-        
+
         # Query nearby allies
         nearby = world.spatial("positions").query_radius(
             center=(player.get_component(Position).x,
@@ -1196,7 +1218,7 @@ def main():
                     player.get_component(Position).z),
             radius=10.0
         )
-    
+
     # Save on exit
     world.save_relic("final_save")
 
@@ -1329,6 +1351,7 @@ class RenderSystem(System):
 
 #### Behaviors to Demonstrate
 - **Wandering**: Animals move randomly, changing direction periodically
+- **Predator/prey**: Optional simple interaction (e.g., fox chases rabbit)
 - **Boundary avoidance**: Animals turn away from world edges
 - **Optional enhancements** (if time permits):
   - Flocking behavior (relationships between nearby animals)
@@ -1349,10 +1372,11 @@ class RenderSystem(System):
 
 ECS (engine-agnostic):
 ├── WanderingAISystem (pure logic)
-├── MovementSystem (pure logic)  
+├── MovementSystem (pure logic)
 └── BoundsSystem (pure logic)
 
 Pygame Layer (rendering only):
+├── InputSystem (reads Pygame events and queues actions)
 └── RenderSystem (reads Position + Sprite, draws to screen)
 ```
 
