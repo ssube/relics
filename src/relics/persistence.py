@@ -141,10 +141,12 @@ def save(
             if source_key not in relationships_data[type_name]:
                 relationships_data[type_name][source_key] = []
             for edge, target_id in edges:
-                relationships_data[type_name][source_key].append({
-                    "target": str(target_id),
-                    "edge": _component_to_dict(edge),
-                })
+                relationships_data[type_name][source_key].append(
+                    {
+                        "target": str(target_id),
+                        "edge": _component_to_dict(edge),
+                    }
+                )
 
     # Build the full data structure
     data = {
@@ -243,9 +245,7 @@ def load(
         for entity_id_str, comp_fields in entities_components.items():
             entity_id = EntityId.parse(entity_id_str)
             if entity_id in world._entities:
-                component = cast(
-                    Component, _dict_to_component(comp_type, comp_fields)
-                )
+                component = cast(Component, _dict_to_component(comp_type, comp_fields))
                 world._entities[entity_id][comp_type] = component
 
     # Load relationships

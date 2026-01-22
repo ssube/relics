@@ -13,7 +13,16 @@
       "Bash(./scripts/setup.sh:*)",
       "Bash(./scripts/test.sh:*)",
       "Bash(source venv/bin/activate)",
-      "Bash(python -m py_compile:*)"
+      "Bash(python -m py_compile:*)",
+      "Bash(python -m black:*)",
+      "Bash(python -m isort:*)",
+      "Bash(python -m flake8:*)",
+      "Bash(python -m mypy:*)",
+      "Bash(black:*)",
+      "Bash(isort:*)",
+      "Bash(flake8:*)",
+      "Bash(mypy:*)",
+      "Bash(pytest:*)"
     ]
   }
 }

@@ -421,9 +421,7 @@ class TestRelationshipPersistence:
         class AllyTo(Edge):
             trust_level: float = 1.0
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
             temp_path = f.name
 
@@ -458,9 +456,7 @@ class TestRelationshipPersistence:
         class AllyTo(Edge):
             trust_level: float = 1.0
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
             temp_path = f.name
 
@@ -496,6 +492,7 @@ class TestRelics:
 
             # Verify metadata contains relic name (self-contained)
             import json
+
             with relic_path.open("r") as f:
                 data = json.load(f)
             assert data["metadata"]["relic_name"] == "test_save"

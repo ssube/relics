@@ -5,20 +5,26 @@ A relic is a snapshot of a world at a particular epoch.
 
 __version__ = "0.2.0"
 
-# Core types
-from relics.types import Component, CustomEvent, Edge, EntityId
-
 # Entity handle
 from relics.entity import Entity
 
-# World
-from relics.world import World
+# Errors
+from relics.errors import (
+    ComponentNotFoundError,
+    DuplicateComponentError,
+    EntityNotFoundError,
+    IndexNotFoundError,
+    PrefabNotFoundError,
+    RelationshipValidationError,
+    RelicError,
+    SystemDependencyCycleError,
+)
 
-# Query system
-from relics.query import QueryBuilder
+# Indexes
+from relics.index import IndexView, LazyIndex, MaterializedIndex
 
-# Systems
-from relics.system import Frequency, RunOrder, System
+# Monitored decorator
+from relics.monitored import is_monitored, monitored
 
 # Observers
 from relics.observer import (
@@ -35,12 +41,6 @@ from relics.observer import (
     OnRelationshipRemoved,
     RelationshipObserver,
 )
-
-# Monitored decorator
-from relics.monitored import is_monitored, monitored
-
-# Indexes
-from relics.index import IndexView, LazyIndex, MaterializedIndex
 
 # Persistence
 from relics.persistence import (
@@ -60,17 +60,17 @@ from relics.prefab import (
     save_prefabs_to_json,
 )
 
-# Errors
-from relics.errors import (
-    ComponentNotFoundError,
-    DuplicateComponentError,
-    EntityNotFoundError,
-    IndexNotFoundError,
-    PrefabNotFoundError,
-    RelationshipValidationError,
-    RelicError,
-    SystemDependencyCycleError,
-)
+# Query system
+from relics.query import QueryBuilder
+
+# Systems
+from relics.system import Frequency, RunOrder, System
+
+# Core types
+from relics.types import Component, CustomEvent, Edge, EntityId
+
+# World
+from relics.world import World
 
 __all__ = [
     # Version

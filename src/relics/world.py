@@ -476,8 +476,7 @@ class World:
         if target_id is None:
             return len(self._relationships[entity_id][edge_type]) > 0
         return any(
-            tid == target_id
-            for _, tid in self._relationships[entity_id][edge_type]
+            tid == target_id for _, tid in self._relationships[entity_id][edge_type]
         )
 
     def _has_incoming_relationship(

@@ -146,9 +146,7 @@ class Entity:
         self._validate_exists()
         self._world._add_relationship(self._id, edge, target)
 
-    def remove_relationship(
-        self, edge_type: Type[Edge], target: "EntityId"
-    ) -> None:
+    def remove_relationship(self, edge_type: Type[Edge], target: "EntityId") -> None:
         """Remove a relationship from this entity to another.
 
         Args:
@@ -161,9 +159,7 @@ class Entity:
         self._validate_exists()
         self._world._remove_relationship(self._id, edge_type, target)
 
-    def get_relationships(
-        self, edge_type: Type[E]
-    ) -> List[Tuple[E, "EntityId"]]:
+    def get_relationships(self, edge_type: Type[E]) -> List[Tuple[E, "EntityId"]]:
         """Get all outgoing relationships of the specified type.
 
         Args:

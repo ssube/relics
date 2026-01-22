@@ -483,10 +483,14 @@ class TestSubSystems:
                     received_components.clear()
                     received_components.extend(components)
 
-                return [(
-                    self.q.with_all([Position, Velocity]).iterate([Position, Velocity]),
-                    update_positions
-                )]
+                return [
+                    (
+                        self.q.with_all([Position, Velocity]).iterate(
+                            [Position, Velocity]
+                        ),
+                        update_positions,
+                    )
+                ]
 
         world.spawn("moving")
         world.register_system(MovementSystem())

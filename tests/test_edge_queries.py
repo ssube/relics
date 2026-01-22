@@ -130,9 +130,7 @@ class TestWithIncoming:
         p1.add_relationship(AllyTo(), p2.id)
 
         # p2 has incoming, p1 and p3 don't
-        with_incoming = list(
-            world.query().with_incoming(AllyTo).execute_entities()
-        )
+        with_incoming = list(world.query().with_incoming(AllyTo).execute_entities())
         assert len(with_incoming) == 1
         assert with_incoming[0] == p2
 
@@ -149,9 +147,7 @@ class TestWithIncoming:
         p2.add_relationship(AllyTo(), p3.id)
 
         # Query for entities with incoming from p1
-        from_p1 = list(
-            world.query().with_incoming(AllyTo, p1.id).execute_entities()
-        )
+        from_p1 = list(world.query().with_incoming(AllyTo, p1.id).execute_entities())
         assert len(from_p1) == 1
         assert from_p1[0] == p3
 
@@ -172,10 +168,7 @@ class TestWithIncoming:
 
         # Query: has Health AND has incoming ally
         result = list(
-            world.query()
-            .with_all([Health])
-            .with_incoming(AllyTo)
-            .execute_entities()
+            world.query().with_all([Health]).with_incoming(AllyTo).execute_entities()
         )
         assert len(result) == 1
         assert result[0] == defended1
