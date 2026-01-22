@@ -10,15 +10,14 @@ from demo.components import (
     CameraInput,
     CameraMarker,
     Consumable,
-    FlowerMarker,
     FoxAI,
     FoxState,
+    GameStats,
+    Obstacle,
     Position,
     RabbitAI,
     RabbitState,
     Sprite,
-    StoneMarker,
-    TreeMarker,
     Velocity,
 )
 from demo.config import (
@@ -85,7 +84,7 @@ def register_prefabs(world: World) -> None:
             Position: Position(x=0, y=0),
             BoundingBox: BoundingBox(width=TREE_SIZE, height=TREE_SIZE),
             Sprite: Sprite(entity_type=ENTITY_TREE),
-            TreeMarker: TreeMarker(),
+            Obstacle: Obstacle(),
         },
     )
 
@@ -96,7 +95,7 @@ def register_prefabs(world: World) -> None:
             Position: Position(x=0, y=0),
             BoundingBox: BoundingBox(width=STONE_SIZE, height=STONE_SIZE),
             Sprite: Sprite(entity_type=ENTITY_STONE),
-            StoneMarker: StoneMarker(),
+            Obstacle: Obstacle(),
         },
     )
 
@@ -107,7 +106,6 @@ def register_prefabs(world: World) -> None:
             Position: Position(x=0, y=0),
             BoundingBox: BoundingBox(width=FLOWER_SIZE, height=FLOWER_SIZE),
             Sprite: Sprite(entity_type=ENTITY_FLOWER),
-            FlowerMarker: FlowerMarker(),
             Consumable: Consumable(),
         },
     )
@@ -121,6 +119,7 @@ def register_prefabs(world: World) -> None:
             BoundingBox: BoundingBox(width=CAMERA_SIZE, height=CAMERA_SIZE),
             CameraMarker: CameraMarker(),
             CameraInput: CameraInput(),
+            GameStats: GameStats(),
         },
     )
 

@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 import pygame
 
-from relics import RunOrder, System, World
+from relics import Frequency, RunOrder, System, World
 
 from demo.camera import Camera
 from demo.components import (
@@ -14,9 +14,10 @@ from demo.components import (
     CameraInput,
     CameraMarker,
     Consumable,
-    FlowerMarker,
     FoxAI,
     FoxState,
+    GameStats,
+    Obstacle,
     Position,
     RabbitAI,
     RabbitState,
@@ -26,14 +27,12 @@ from demo.components import (
 from demo.config import (
     CAMERA_SPEED,
     COLORS,
-    ENTITY_CAMERA,
     ENTITY_FLOWER,
     FLOWER_SIZE,
-    FOX_SIGHT_RANGE,
+    FOX_SPEED,
     RABBIT_FLEE_RANGE,
     RABBIT_SIZE,
     RABBIT_SPEED,
-    FOX_SPEED,
     SAFE_SPAWN_DISTANCE,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
@@ -67,6 +66,9 @@ class RabbitAISystem(System):
     def query(self):
         return self.q.with_all([Position, RabbitAI, Velocity])
 
+    def frequency(self):
+        return Frequency.every_n_ticks(5)
+
     def process(self, entities, components, delta):
         # Get all fox positions
         fox_positions = []
@@ -76,7 +78,7 @@ class RabbitAISystem(System):
 
         # Get all flower positions
         flower_data = []
-        for flower in self.world.query().with_all([Position, FlowerMarker]).execute_entities():
+        for flower in self.world.query().with_all([Position, Consumable]).execute_entities():
             flower_pos = flower.get_component(Position)
             flower_data.append((flower.id, flower_pos.x, flower_pos.y))
 
@@ -139,13 +141,14 @@ class FoxAISystem(System):
     """
     Fox AI system - handles chase behavior.
 
-    If chasing and target out of SIGHT_RANGE -> stop chasing
-    If not chasing and rabbit in SIGHT_RANGE -> start chasing
-    Chase: move toward target rabbit
+    Always chases the nearest rabbit within sight range.
     """
 
     def query(self):
         return self.q.with_all([Position, FoxAI, Velocity])
+
+    def frequency(self):
+        return Frequency.every_n_ticks(5)
 
     def deps(self):
         return {}  # No dependencies, runs early
@@ -162,32 +165,7 @@ class FoxAISystem(System):
             vel = fox.get_component(Velocity)
             ai = fox.get_component(FoxAI)
 
-            # If currently chasing, check if target is still valid
-            if ai.state == FoxState.CHASING and ai.target_id is not None:
-                # Find target rabbit
-                target_found = False
-                for rabbit_id, rx, ry in rabbit_data:
-                    if rabbit_id == ai.target_id:
-                        target_dist = distance(pos.x, pos.y, rx, ry)
-                        if target_dist <= ai.sight_range:
-                            # Continue chasing
-                            target_found = True
-                            chase_dir_x = rx - pos.x
-                            chase_dir_y = ry - pos.y
-                            norm_x, norm_y = normalize(chase_dir_x, chase_dir_y)
-                            vel.vx = norm_x * FOX_SPEED
-                            vel.vy = norm_y * FOX_SPEED
-                        break
-
-                if not target_found:
-                    # Lost target - stop chasing
-                    ai.state = FoxState.IDLE
-                    ai.target_id = None
-                    vel.vx = 0
-                    vel.vy = 0
-                continue
-
-            # Not chasing - look for nearby rabbits
+            # Always find the nearest rabbit (allows switching to closer targets)
             nearest_rabbit = None
             nearest_dist = float('inf')
 
@@ -198,7 +176,7 @@ class FoxAISystem(System):
                     nearest_rabbit = (rabbit_id, rx, ry)
 
             if nearest_rabbit:
-                # Start chasing
+                # Chase nearest rabbit
                 ai.state = FoxState.CHASING
                 ai.target_id = nearest_rabbit[0]
                 chase_dir_x = nearest_rabbit[1] - pos.x
@@ -207,7 +185,7 @@ class FoxAISystem(System):
                 vel.vx = norm_x * FOX_SPEED
                 vel.vy = norm_y * FOX_SPEED
             else:
-                # Idle - slow down
+                # No rabbits in range - idle
                 ai.state = FoxState.IDLE
                 ai.target_id = None
                 vel.vx *= 0.95
@@ -326,8 +304,10 @@ class CollisionSystem(System):
     """
     Collision system - handles entity interactions.
 
-    Fox-Rabbit: AABB collision -> respawn rabbit at safe location
-    Rabbit-Flower: AABB collision -> remove flower, spawn new one
+    - Fox-Rabbit: AABB collision -> respawn rabbit at safe location
+    - Rabbit-Flower: AABB collision -> remove flower, spawn new one
+    - Mobile entities vs obstacles (trees/stones): push out of collision
+    - Rabbit-Rabbit: separate overlapping rabbits
     """
 
     def query(self):
@@ -337,38 +317,89 @@ class CollisionSystem(System):
         return {RunOrder.AFTER: [BoundsSystem]}
 
     def process(self, entities, components, delta):
-        # Get foxes and rabbits for collision detection
+        # Categorize entities
+        mobile = []  # Entities that can move (have Velocity)
         foxes = []
         rabbits = []
-        flowers = []
+        consumables = []  # Things that can be eaten (flowers)
+        obstacles = []  # Trees and stones (static)
 
         for entity in entities:
+            pos = entity.get_component(Position)
+            bbox = entity.get_component(BoundingBox)
+
             if entity.has_component(FoxAI):
-                pos = entity.get_component(Position)
-                bbox = entity.get_component(BoundingBox)
-                foxes.append((entity, pos.x, pos.y, bbox.width, bbox.height))
+                foxes.append((entity, pos, bbox))
+                mobile.append((entity, pos, bbox))
             elif entity.has_component(RabbitAI):
-                pos = entity.get_component(Position)
-                bbox = entity.get_component(BoundingBox)
-                rabbits.append((entity, pos.x, pos.y, bbox.width, bbox.height))
-            elif entity.has_component(FlowerMarker):
-                pos = entity.get_component(Position)
-                bbox = entity.get_component(BoundingBox)
-                flowers.append((entity, pos.x, pos.y, bbox.width, bbox.height))
+                rabbits.append((entity, pos, bbox))
+                mobile.append((entity, pos, bbox))
+            elif entity.has_component(Consumable):
+                consumables.append((entity, pos, bbox))
+            elif entity.has_component(Obstacle):
+                obstacles.append((entity, pos, bbox))
 
-        # Check fox-rabbit collisions
-        for fox, fx, fy, fw, fh in foxes:
-            for rabbit, rx, ry, rw, rh in rabbits:
-                if self._aabb_collision(fx, fy, fw, fh, rx, ry, rw, rh):
-                    # Respawn rabbit at safe location
+        # Handle mobile entity vs obstacle collisions
+        for entity, pos, bbox in mobile:
+            for obs_entity, obs_pos, obs_bbox in obstacles:
+                # Distance-squared early out (use max dimension as threshold)
+                max_size = max(bbox.width, bbox.height, obs_bbox.width, obs_bbox.height)
+                dx = pos.x - obs_pos.x
+                dy = pos.y - obs_pos.y
+                if dx * dx + dy * dy > (max_size * 2) ** 2:
+                    continue
+
+                if self._aabb_collision(
+                    pos.x, pos.y, bbox.width, bbox.height,
+                    obs_pos.x, obs_pos.y, obs_bbox.width, obs_bbox.height
+                ):
+                    self._push_out_of_collision(pos, bbox, obs_pos, obs_bbox)
+
+        # Handle mobile-to-mobile collisions (all-to-all)
+        for i, (entity1, pos1, bbox1) in enumerate(mobile):
+            for entity2, pos2, bbox2 in mobile[i + 1:]:
+                # Distance-squared early out
+                max_size = max(bbox1.width, bbox1.height, bbox2.width, bbox2.height)
+                dx = pos1.x - pos2.x
+                dy = pos1.y - pos2.y
+                if dx * dx + dy * dy > (max_size * 2) ** 2:
+                    continue
+
+                if self._aabb_collision(
+                    pos1.x, pos1.y, bbox1.width, bbox1.height,
+                    pos2.x, pos2.y, bbox2.width, bbox2.height
+                ):
+                    self._separate_entities(pos1, bbox1, pos2, bbox2)
+
+        # Get game stats from camera entity
+        stats = None
+        for cam in self.world.query().with_all([CameraMarker, GameStats]).execute_entities():
+            stats = cam.get_component(GameStats)
+            break
+
+        # Check fox-rabbit collisions (fox catches rabbit - special interaction)
+        for fox, fox_pos, fox_bbox in foxes:
+            for rabbit, rabbit_pos, rabbit_bbox in rabbits:
+                if self._aabb_collision(
+                    fox_pos.x, fox_pos.y, fox_bbox.width, fox_bbox.height,
+                    rabbit_pos.x, rabbit_pos.y, rabbit_bbox.width, rabbit_bbox.height
+                ):
+                    print(f"[EVENT] Fox caught a rabbit! Rabbit respawning...")
                     self._respawn_rabbit(rabbit)
+                    if stats:
+                        stats.rabbits_eaten += 1
 
-        # Check rabbit-flower collisions
-        for rabbit, rx, ry, rw, rh in rabbits:
-            for flower, flx, fly, flw, flh in flowers:
-                if self._aabb_collision(rx, ry, rw, rh, flx, fly, flw, flh):
-                    # Remove flower and spawn new one
-                    self._consume_flower(flower)
+        # Check rabbit-consumable collisions (rabbit eats consumable - special interaction)
+        for rabbit, rabbit_pos, rabbit_bbox in rabbits:
+            for consumable, cons_pos, cons_bbox in consumables:
+                if self._aabb_collision(
+                    rabbit_pos.x, rabbit_pos.y, rabbit_bbox.width, rabbit_bbox.height,
+                    cons_pos.x, cons_pos.y, cons_bbox.width, cons_bbox.height
+                ):
+                    print(f"[EVENT] Rabbit ate a flower! New flower spawning...")
+                    self._consume_flower(consumable)
+                    if stats:
+                        stats.flowers_eaten += 1
 
     def _aabb_collision(
         self,
@@ -382,6 +413,57 @@ class CollisionSystem(System):
             and y1 < y2 + h2
             and y1 + h1 > y2
         )
+
+    def _push_out_of_collision(self, pos, bbox, obs_pos, obs_bbox) -> None:
+        """Push an entity out of collision with an obstacle."""
+        # Calculate overlap on each axis
+        overlap_left = (pos.x + bbox.width) - obs_pos.x
+        overlap_right = (obs_pos.x + obs_bbox.width) - pos.x
+        overlap_top = (pos.y + bbox.height) - obs_pos.y
+        overlap_bottom = (obs_pos.y + obs_bbox.height) - pos.y
+
+        # Find minimum overlap and push out on that axis
+        min_overlap = min(overlap_left, overlap_right, overlap_top, overlap_bottom)
+
+        if min_overlap == overlap_left:
+            pos.x = obs_pos.x - bbox.width
+        elif min_overlap == overlap_right:
+            pos.x = obs_pos.x + obs_bbox.width
+        elif min_overlap == overlap_top:
+            pos.y = obs_pos.y - bbox.height
+        else:
+            pos.y = obs_pos.y + obs_bbox.height
+
+    def _separate_entities(self, pos1, bbox1, pos2, bbox2) -> None:
+        """Separate two overlapping entities by pushing them apart."""
+        # Calculate centers
+        cx1 = pos1.x + bbox1.width / 2
+        cy1 = pos1.y + bbox1.height / 2
+        cx2 = pos2.x + bbox2.width / 2
+        cy2 = pos2.y + bbox2.height / 2
+
+        # Direction from entity 2 to entity 1
+        dx = cx1 - cx2
+        dy = cy1 - cy2
+        dist = math.sqrt(dx * dx + dy * dy)
+
+        if dist == 0:
+            # Entities at same position, push in random direction
+            dx, dy = random.uniform(-1, 1), random.uniform(-1, 1)
+            dist = math.sqrt(dx * dx + dy * dy)
+            if dist == 0:
+                dx, dy = 1, 0
+                dist = 1
+
+        # Normalize and push apart by half the overlap each
+        dx /= dist
+        dy /= dist
+        push_dist = 2.0  # Small push to separate
+
+        pos1.x += dx * push_dist
+        pos1.y += dy * push_dist
+        pos2.x -= dx * push_dist
+        pos2.y -= dy * push_dist
 
     def _respawn_rabbit(self, rabbit) -> None:
         """Respawn rabbit at a safe location away from foxes."""

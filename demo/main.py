@@ -47,15 +47,24 @@ def draw_pause_overlay(screen: pygame.Surface) -> None:
 
 
 def draw_hud(screen: pygame.Surface, world: World, fps: float) -> None:
-    """Draw HUD with entity counts and FPS."""
+    """Draw HUD with entity counts, stats, and FPS."""
     font = pygame.font.Font(None, 24)
 
     # Count entities
-    from demo.components import FlowerMarker, FoxAI, RabbitAI
+    from demo.components import CameraMarker, Consumable, FoxAI, GameStats, RabbitAI
 
     rabbit_count = sum(1 for _ in world.query().with_all([RabbitAI]).execute_ids())
     fox_count = sum(1 for _ in world.query().with_all([FoxAI]).execute_ids())
-    flower_count = sum(1 for _ in world.query().with_all([FlowerMarker]).execute_ids())
+    flower_count = sum(1 for _ in world.query().with_all([Consumable]).execute_ids())
+
+    # Get game stats from camera entity
+    rabbits_eaten = 0
+    flowers_eaten = 0
+    for cam in world.query().with_all([CameraMarker, GameStats]).execute_entities():
+        stats = cam.get_component(GameStats)
+        rabbits_eaten = stats.rabbits_eaten
+        flowers_eaten = stats.flowers_eaten
+        break
 
     # FPS display
     fps_text = font.render(f"FPS: {fps:.0f}", True, (255, 255, 255))
@@ -69,9 +78,17 @@ def draw_hud(screen: pygame.Surface, world: World, fps: float) -> None:
     )
     screen.blit(counts_text, (10, 35))
 
+    # Game stats
+    stats_text = font.render(
+        f"Eaten - Rabbits: {rabbits_eaten}  Flowers: {flowers_eaten}",
+        True,
+        (255, 255, 255)
+    )
+    screen.blit(stats_text, (10, 60))
+
     # Controls hint
     controls_text = font.render(
-        "WASD: Move camera  SPACE: Pause  ESC: Quit",
+        "WASD: Move camera  Shift: Sprint  SPACE: Pause  ESC: Quit",
         True,
         (200, 200, 200)
     )

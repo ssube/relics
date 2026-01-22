@@ -71,22 +71,8 @@ class FoxAI(Component):
 
 
 @dataclass
-class FlowerMarker(Component):
-    """Marker component for flowers."""
-
-    pass
-
-
-@dataclass
-class TreeMarker(Component):
-    """Marker component for trees."""
-
-    pass
-
-
-@dataclass
-class StoneMarker(Component):
-    """Marker component for stones."""
+class Obstacle(Component):
+    """Marker for solid, immovable entities that block movement."""
 
     pass
 
@@ -114,3 +100,11 @@ class CameraInput(Component):
     move_up: bool = False
     move_down: bool = False
     sprint: bool = False  # Shift key for 2x speed
+
+
+@dataclass
+class GameStats(Component):
+    """Tracks game statistics."""
+
+    rabbits_eaten: int = 0
+    flowers_eaten: int = 0
