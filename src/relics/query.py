@@ -9,6 +9,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Set,
     Tuple,
     Type,
 )
@@ -195,13 +196,58 @@ class QueryBuilder:
                 return False
         return True
 
+    def _get_candidates(self) -> Set[EntityId]:
+        """Get candidate entity IDs using the component index.
+
+        Uses set intersection for with_all queries to avoid full scans.
+        Returns all entity IDs if no with_all constraint is specified.
+
+        Returns:
+            Set of candidate entity IDs to filter.
+        """
+        if not self._with_all:
+            # No with_all constraint, must scan all entities
+            return set(self._world._entities.keys())
+
+        # Get entity sets for each required component type
+        candidate_sets = [
+            self._world.get_entities_with_component(ct) for ct in self._with_all
+        ]
+
+        # If any component has no entities, return empty set
+        if not all(candidate_sets):
+            return set()
+
+        # Find the smallest set to start intersection (optimization)
+        result = min(candidate_sets, key=len).copy()
+
+        # Intersect with all other sets
+        for s in candidate_sets:
+            if s is not result:
+                result &= s
+                # Early exit if intersection becomes empty
+                if not result:
+                    return set()
+
+        return result
+
     def execute_ids(self) -> Iterator[EntityId]:
         """Return matching entity IDs only.
+
+        Uses component index for with_all queries to avoid full entity scan.
 
         Yields:
             EntityIds of matching entities.
         """
-        for entity_id, components in self._world._entities.items():
+        # Use component index to get candidate entities (much smaller than full scan)
+        candidates = self._get_candidates()
+
+        for entity_id in candidates:
+            components = self._world._entities.get(entity_id)
+            if components is None:
+                continue  # Entity was removed
+
+            # with_all is already satisfied by _get_candidates(), check other criteria
             if self._matches(entity_id, components):
                 if self._filters:
                     entity = Entity(self._world, entity_id)
@@ -213,10 +259,19 @@ class QueryBuilder:
     def execute_entities(self) -> Iterator[Entity]:
         """Return live Entity handles.
 
+        Uses component index for with_all queries to avoid full entity scan.
+
         Yields:
             Entity handles for matching entities.
         """
-        for entity_id, components in self._world._entities.items():
+        # Use component index to get candidate entities (much smaller than full scan)
+        candidates = self._get_candidates()
+
+        for entity_id in candidates:
+            components = self._world._entities.get(entity_id)
+            if components is None:
+                continue  # Entity was removed
+
             if self._matches(entity_id, components):
                 entity = Entity(self._world, entity_id)
                 if self._apply_filters(entity):
@@ -227,6 +282,7 @@ class QueryBuilder:
 
         The returned tuple contains the EntityId followed by the
         component instances in the order specified by iterate().
+        Uses component index for with_all queries to avoid full entity scan.
 
         Yields:
             Tuple of (EntityId, component1, component2, ...).
@@ -237,7 +293,14 @@ class QueryBuilder:
         if self._iterate_types is None:
             raise ValueError("iterate() must be called before execute_components()")
 
-        for entity_id, components in self._world._entities.items():
+        # Use component index to get candidate entities (much smaller than full scan)
+        candidates = self._get_candidates()
+
+        for entity_id in candidates:
+            components = self._world._entities.get(entity_id)
+            if components is None:
+                continue  # Entity was removed
+
             if self._matches(entity_id, components):
                 if self._filters:
                     entity = Entity(self._world, entity_id)

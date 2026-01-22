@@ -140,7 +140,8 @@ def save(
             source_key = str(source_id)
             if source_key not in relationships_data[type_name]:
                 relationships_data[type_name][source_key] = []
-            for edge, target_id in edges:
+            # edges is now a dict: {target_id -> edge}
+            for target_id, edge in edges.items():
                 relationships_data[type_name][source_key].append(
                     {
                         "target": str(target_id),
@@ -198,6 +199,7 @@ def load(
     world._prefab_index.clear()
     world._relationships.clear()
     world._incoming_relationships.clear()
+    world._component_index.clear()
 
     # Load metadata
     metadata = data.get("metadata", {})
@@ -248,6 +250,11 @@ def load(
                 component = cast(Component, _dict_to_component(comp_type, comp_fields))
                 world._entities[entity_id][comp_type] = component
 
+                # Update component index
+                if comp_type not in world._component_index:
+                    world._component_index[comp_type] = set()
+                world._component_index[comp_type].add(entity_id)
+
     # Load relationships
     relationships_data = data.get("relationships", {})
     for edge_name, sources in relationships_data.items():
@@ -268,21 +275,19 @@ def load(
 
                 edge = cast(Edge, _dict_to_component(edge_type, edge_info["edge"]))
 
-                # Add to outgoing
+                # Add to outgoing (dict-based for O(1) removal)
                 if source_id not in world._relationships:
                     world._relationships[source_id] = {}
                 if edge_type not in world._relationships[source_id]:
-                    world._relationships[source_id][edge_type] = []
-                world._relationships[source_id][edge_type].append((edge, target_id))
+                    world._relationships[source_id][edge_type] = {}
+                world._relationships[source_id][edge_type][target_id] = edge
 
-                # Add to incoming
+                # Add to incoming (dict-based for O(1) removal)
                 if target_id not in world._incoming_relationships:
                     world._incoming_relationships[target_id] = {}
                 if edge_type not in world._incoming_relationships[target_id]:
-                    world._incoming_relationships[target_id][edge_type] = []
-                world._incoming_relationships[target_id][edge_type].append(
-                    (source_id, edge)
-                )
+                    world._incoming_relationships[target_id][edge_type] = {}
+                world._incoming_relationships[target_id][edge_type][source_id] = edge
 
 
 def save_relic(

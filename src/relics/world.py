@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections import deque
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 from relics.entity import Entity
@@ -90,24 +91,28 @@ class World:
         # Observers
         self._observers: list[Observer] = []
 
-        # Observer event queue
-        self._observer_queue: list[tuple[Observer, tuple[Any, ...]]] = []
+        # Observer event queue (deque for O(1) popleft)
+        self._observer_queue: deque[tuple[Observer, tuple[Any, ...]]] = deque()
 
         # Component type registry (for persistence)
         self._component_types: Dict[str, Type[Component]] = {}
 
-        # Relationship storage
-        # Outgoing: source_id -> {edge_type -> [(edge, target_id), ...]}
+        # Relationship storage (dict-based for O(1) removal)
+        # Outgoing: source_id -> {edge_type -> {target_id -> edge}}
         self._relationships: Dict[
-            EntityId, Dict[Type[Edge], List[Tuple[Edge, EntityId]]]
+            EntityId, Dict[Type[Edge], Dict[EntityId, Edge]]
         ] = {}
-        # Incoming index: target_id -> {edge_type -> [(source_id, edge), ...]}
+        # Incoming index: target_id -> {edge_type -> {source_id -> edge}}
         self._incoming_relationships: Dict[
-            EntityId, Dict[Type[Edge], List[Tuple[EntityId, Edge]]]
+            EntityId, Dict[Type[Edge], Dict[EntityId, Edge]]
         ] = {}
 
         # Edge type registry (for persistence)
         self._edge_types: Dict[str, Type[Edge]] = {}
+
+        # Component index: component_type -> set of entity_ids that have it
+        # Enables O(1) lookup of entities by component type for query optimization
+        self._component_index: Dict[Type[Component], Set[EntityId]] = {}
 
         # Secondary indexes
         self._indexes: Dict[str, "IndexView"] = {}
@@ -188,6 +193,12 @@ class World:
             self._prefab_index[prefab] = set()
         self._prefab_index[prefab].add(entity_id)
 
+        # Update component index for all components
+        for comp_type in components:
+            if comp_type not in self._component_index:
+                self._component_index[comp_type] = set()
+            self._component_index[comp_type].add(entity_id)
+
         entity = Entity(self, entity_id)
 
         # Queue OnEntityCreated observers
@@ -244,7 +255,7 @@ class World:
         # Clean up outgoing relationships
         if entity_id in self._relationships:
             for edge_type, edges in list(self._relationships[entity_id].items()):
-                for edge, target_id in list(edges):
+                for target_id in list(edges.keys()):
                     self._remove_relationship(entity_id, edge_type, target_id)
             del self._relationships[entity_id]
 
@@ -253,16 +264,19 @@ class World:
             for edge_type, incoming_edges in list(
                 self._incoming_relationships[entity_id].items()
             ):
-                for source_id, _edge in list(incoming_edges):
-                    # Remove from source's outgoing relationships
+                for source_id in list(incoming_edges.keys()):
+                    # Remove from source's outgoing relationships (O(1) dict delete)
                     if source_id in self._relationships:
                         if edge_type in self._relationships[source_id]:
-                            self._relationships[source_id][edge_type] = [
-                                (e, t)
-                                for e, t in self._relationships[source_id][edge_type]
-                                if t != entity_id
-                            ]
+                            self._relationships[source_id][edge_type].pop(
+                                entity_id, None
+                            )
             del self._incoming_relationships[entity_id]
+
+        # Update component index (before removing from storage)
+        for comp_type in self._entities[entity_id]:
+            if comp_type in self._component_index:
+                self._component_index[comp_type].discard(entity_id)
 
         # Remove from storage
         del self._entities[entity_id]
@@ -283,6 +297,11 @@ class World:
         self._entities[entity_id][component_type] = component
         self.register_component_type(component_type)
 
+        # Update component index
+        if component_type not in self._component_index:
+            self._component_index[component_type] = set()
+        self._component_index[component_type].add(entity_id)
+
         # Queue OnComponentAdded observers
         entity = Entity(self, entity_id)
         self._queue_component_added(entity, component)
@@ -298,6 +317,10 @@ class World:
         """
         component = self._entities[entity_id][component_type]
         del self._entities[entity_id][component_type]
+
+        # Update component index
+        if component_type in self._component_index:
+            self._component_index[component_type].discard(entity_id)
 
         # Queue OnComponentRemoved observers
         entity = Entity(self, entity_id)
@@ -369,16 +392,16 @@ class World:
         if source_id not in self._relationships:
             self._relationships[source_id] = {}
         if edge_type not in self._relationships[source_id]:
-            self._relationships[source_id][edge_type] = []
+            self._relationships[source_id][edge_type] = {}
 
         if target_id not in self._incoming_relationships:
             self._incoming_relationships[target_id] = {}
         if edge_type not in self._incoming_relationships[target_id]:
-            self._incoming_relationships[target_id][edge_type] = []
+            self._incoming_relationships[target_id][edge_type] = {}
 
-        # Add the relationship
-        self._relationships[source_id][edge_type].append((edge, target_id))
-        self._incoming_relationships[target_id][edge_type].append((source_id, edge))
+        # Add the relationship (O(1) dict assignment)
+        self._relationships[source_id][edge_type][target_id] = edge
+        self._incoming_relationships[target_id][edge_type][source_id] = edge
 
         # Queue observer
         self._queue_relationship_added(source, edge, target)
@@ -393,25 +416,21 @@ class World:
             edge_type: The type of edge to remove.
             target_id: The target entity's ID.
         """
-        # Find and remove the edge
+        # Find and remove the edge (O(1) dict operations)
         edge_to_remove: Optional[Edge] = None
 
         if source_id in self._relationships:
             if edge_type in self._relationships[source_id]:
                 edges = self._relationships[source_id][edge_type]
-                for i, (edge, tid) in enumerate(edges):
-                    if tid == target_id:
-                        edge_to_remove = edge
-                        edges.pop(i)
-                        break
+                if target_id in edges:
+                    edge_to_remove = edges[target_id]
+                    del edges[target_id]
 
         if target_id in self._incoming_relationships:
             if edge_type in self._incoming_relationships[target_id]:
                 incoming = self._incoming_relationships[target_id][edge_type]
-                for i, (sid, edge) in enumerate(incoming):
-                    if sid == source_id:
-                        incoming.pop(i)
-                        break
+                if source_id in incoming:
+                    del incoming[source_id]
 
         # Queue observer if edge was found and entities still exist
         if edge_to_remove is not None:
@@ -436,7 +455,11 @@ class World:
             return []
         if edge_type not in self._relationships[entity_id]:
             return []
-        return list(self._relationships[entity_id][edge_type])
+        # Convert dict to list of tuples for API compatibility
+        return [
+            (edge, target_id)
+            for target_id, edge in self._relationships[entity_id][edge_type].items()
+        ]
 
     def _get_incoming_relationships(
         self, entity_id: EntityId, edge_type: Type[Edge]
@@ -454,7 +477,13 @@ class World:
             return []
         if edge_type not in self._incoming_relationships[entity_id]:
             return []
-        return list(self._incoming_relationships[entity_id][edge_type])
+        # Convert dict to list of tuples for API compatibility
+        return [
+            (source_id, edge)
+            for source_id, edge in self._incoming_relationships[entity_id][
+                edge_type
+            ].items()
+        ]
 
     def _has_relationship(
         self, entity_id: EntityId, edge_type: Type[Edge], target_id: Optional[EntityId]
@@ -475,9 +504,8 @@ class World:
             return False
         if target_id is None:
             return len(self._relationships[entity_id][edge_type]) > 0
-        return any(
-            tid == target_id for _, tid in self._relationships[entity_id][edge_type]
-        )
+        # O(1) dict lookup instead of linear search
+        return target_id in self._relationships[entity_id][edge_type]
 
     def _has_incoming_relationship(
         self, entity_id: EntityId, edge_type: Type[Edge], source_id: Optional[EntityId]
@@ -498,10 +526,8 @@ class World:
             return False
         if source_id is None:
             return len(self._incoming_relationships[entity_id][edge_type]) > 0
-        return any(
-            sid == source_id
-            for sid, _ in self._incoming_relationships[entity_id][edge_type]
-        )
+        # O(1) dict lookup instead of linear search
+        return source_id in self._incoming_relationships[entity_id][edge_type]
 
     def emit(self, event: CustomEvent) -> None:
         """Emit a custom event.
@@ -523,6 +549,22 @@ class World:
         from relics.query import QueryBuilder
 
         return QueryBuilder(self)
+
+    def get_entities_with_component(
+        self, component_type: Type[Component]
+    ) -> Set[EntityId]:
+        """Get all entity IDs that have a specific component type.
+
+        This is an O(1) lookup using the component index.
+
+        Args:
+            component_type: The component type to search for.
+
+        Returns:
+            Set of entity IDs that have this component type.
+            Returns empty set if no entities have this component.
+        """
+        return self._component_index.get(component_type, set())
 
     def register_system(self, system: "System") -> None:
         """Register a system.
@@ -790,7 +832,7 @@ class World:
     def _process_observer_queue(self) -> None:
         """Process all queued observer events."""
         while self._observer_queue:
-            observer, args = self._observer_queue.pop(0)
+            observer, args = self._observer_queue.popleft()
             method_name = args[0]
             method_args = args[1:]
             method = getattr(observer, method_name)
@@ -884,7 +926,7 @@ class World:
             for edge_type, edges in self._relationships[entity_id].items():
                 result["relationships"][edge_type.__name__] = [
                     {"edge": _component_to_dict(edge), "target": str(target_id)}
-                    for edge, target_id in edges
+                    for target_id, edge in edges.items()
                 ]
 
         # Export incoming relationships
@@ -892,7 +934,7 @@ class World:
             for edge_type, incoming in self._incoming_relationships[entity_id].items():
                 result["incoming_relationships"][edge_type.__name__] = [
                     {"source": str(source_id), "edge": _component_to_dict(edge)}
-                    for source_id, edge in incoming
+                    for source_id, edge in incoming.items()
                 ]
 
         return result
