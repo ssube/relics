@@ -5,9 +5,13 @@ from pydantic.dataclasses import dataclass
 
 from relics import (
     Component,
+    ComponentObserver,
+    Edge,
     EntityNotFoundError,
     PrefabNotFoundError,
+    RelationshipValidationError,
     World,
+    monitored,
 )
 from relics.types import EntityId
 
@@ -192,3 +196,181 @@ class TestWorld:
         world = World()
         builder = world.query()
         assert isinstance(builder, QueryBuilder)
+
+
+@dataclass
+class AllyTo(Edge):
+    """Test edge for relationships."""
+
+    trust_level: float = 1.0
+
+
+@dataclass
+class FailingEdge(Edge):
+    """Edge that raises an exception during validation."""
+
+    def validate(self, source, target):
+        raise ValueError("Validation error")
+
+
+class TestRelationshipEdgeCases:
+    """Tests for relationship edge cases in World."""
+
+    def test_add_relationship_nonexistent_source(self) -> None:
+        """Test add_relationship with non-existent source raises error."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        target = world.spawn("player")
+        fake_source_id = EntityId(prefab="player", sequence=999999)
+
+        with pytest.raises(EntityNotFoundError) as exc_info:
+            world._add_relationship(fake_source_id, AllyTo(), target.id)
+        assert "Source entity" in str(exc_info.value)
+
+    def test_add_relationship_nonexistent_target(self) -> None:
+        """Test add_relationship with non-existent target raises error."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        source = world.spawn("player")
+        fake_target_id = EntityId(prefab="player", sequence=999999)
+
+        with pytest.raises(EntityNotFoundError) as exc_info:
+            world._add_relationship(source.id, AllyTo(), fake_target_id)
+        assert "Target entity" in str(exc_info.value)
+
+    def test_add_relationship_validation_exception(self) -> None:
+        """Test add_relationship when edge validation raises exception."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        source = world.spawn("player")
+        target = world.spawn("player")
+
+        with pytest.raises(RelationshipValidationError) as exc_info:
+            world._add_relationship(source.id, FailingEdge(), target.id)
+        assert "Edge validation raised exception" in str(exc_info.value)
+
+    def test_get_relationships_no_relationships(self) -> None:
+        """Test _get_relationships for entity with no relationships."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        entity = world.spawn("player")
+
+        # Entity has no relationships at all
+        relationships = world._get_relationships(entity.id, AllyTo)
+        assert relationships == []
+
+    def test_get_relationships_no_relationships_of_type(self) -> None:
+        """Test _get_relationships for entity with no relationships of that type."""
+
+        @dataclass
+        class EnemyOf(Edge):
+            """Another edge type."""
+
+            pass
+
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+
+        # Add EnemyOf relationship, then query for AllyTo
+        p1.add_relationship(EnemyOf(), p2.id)
+
+        # Query for AllyTo should return empty
+        relationships = world._get_relationships(p1.id, AllyTo)
+        assert relationships == []
+
+    def test_get_incoming_relationships_no_relationships(self) -> None:
+        """Test _get_incoming_relationships for entity with no incoming."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        entity = world.spawn("player")
+
+        # Entity has no incoming relationships at all
+        relationships = world._get_incoming_relationships(entity.id, AllyTo)
+        assert relationships == []
+
+    def test_get_incoming_relationships_no_relationships_of_type(self) -> None:
+        """Test _get_incoming_relationships for entity with no incoming of that type."""
+
+        @dataclass
+        class EnemyOf(Edge):
+            """Another edge type."""
+
+            pass
+
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+
+        # p1 -> p2 with EnemyOf, then query p2 for AllyTo incoming
+        p1.add_relationship(EnemyOf(), p2.id)
+
+        # Query for AllyTo incoming should return empty
+        relationships = world._get_incoming_relationships(p2.id, AllyTo)
+        assert relationships == []
+
+
+class TestExportEntity:
+    """Tests for export_entity in World."""
+
+    def test_export_entity_not_found(self) -> None:
+        """Test export_entity with non-existent entity raises error."""
+        world = World()
+
+        fake_id = EntityId(prefab="player", sequence=999999)
+        with pytest.raises(EntityNotFoundError):
+            world.export_entity(fake_id)
+
+
+@monitored
+@dataclass
+class MonitoredHealth(Component):
+    """Monitored health component for testing."""
+
+    current: int
+    maximum: int
+
+
+class TestComponentObserverOnChanged:
+    """Tests for ComponentObserver handling on_component_changed."""
+
+    def test_component_observer_receives_changed_events(self) -> None:
+        """Test that ComponentObserver receives on_component_changed events."""
+        world = World()
+        world.register_prefab(
+            "player",
+            {
+                Position: Position(x=0, y=0),
+                MonitoredHealth: MonitoredHealth(current=100, maximum=100),
+            },
+        )
+
+        changes = []
+
+        class HealthTracker(ComponentObserver):
+            component_type = MonitoredHealth
+
+            def on_component_changed(self, entity, old_value, new_value):
+                changes.append((old_value.current, new_value.current))
+
+        world.observe(HealthTracker())
+
+        entity = world.spawn("player")
+        health = entity.get_component(MonitoredHealth)
+        health._bind_to_world(world, entity.id)
+
+        # Change health
+        health.current = 80
+        world.tick(0.016)
+
+        assert len(changes) == 1
+        assert changes[0] == (100, 80)

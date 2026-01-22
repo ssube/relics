@@ -230,3 +230,95 @@ class TestQueryBuilder:
             .execute_entities()
         )
         assert len(results) == 2
+
+
+class TestExecuteComponentsEdgeCases:
+    """Tests for edge cases in execute_components."""
+
+    def setup_method(self) -> None:
+        """Set up test fixtures."""
+        self.world = World()
+        self.world.register_prefab(
+            "full",
+            {
+                Position: Position(x=0, y=0),
+                Velocity: Velocity(x=1, y=1),
+                Health: Health(current=100, maximum=100),
+            },
+        )
+        self.world.register_prefab(
+            "partial",
+            {Position: Position(x=0, y=0), Health: Health(current=50, maximum=100)},
+        )
+
+    def test_execute_components_with_filter_passes(self) -> None:
+        """Test execute_components when filter passes."""
+        p1 = self.world.spawn("full", {Position: Position(x=10, y=20)})
+        self.world.spawn("full", {Position: Position(x=50, y=50)})
+
+        # Filter for position.x < 30
+        results = list(
+            self.world.query()
+            .with_all([Position, Velocity])
+            .with_filter(lambda e: e.get_component(Position).x < 30)
+            .iterate([Position, Velocity])
+            .execute_components()
+        )
+
+        assert len(results) == 1
+        entity_id, pos, vel = results[0]
+        assert entity_id == p1.id
+        assert pos.x == 10
+        assert pos.y == 20
+
+    def test_execute_components_filter_rejects(self) -> None:
+        """Test execute_components when filter rejects some entities."""
+        self.world.spawn("full", {Position: Position(x=10, y=20)})
+        self.world.spawn("full", {Position: Position(x=50, y=50)})
+
+        # Filter that rejects all
+        results = list(
+            self.world.query()
+            .with_all([Position, Velocity])
+            .with_filter(lambda e: False)
+            .iterate([Position, Velocity])
+            .execute_components()
+        )
+
+        assert len(results) == 0
+
+    def test_execute_components_missing_iterate_component(self) -> None:
+        """Test execute_components skips entities missing iterate components."""
+        self.world.spawn("full")  # Has Position, Velocity, Health
+        self.world.spawn("partial")  # Has Position, Health but no Velocity
+
+        # Query for Position but iterate includes Velocity
+        results = list(
+            self.world.query()
+            .with_all([Position])
+            .iterate([Position, Velocity])
+            .execute_components()
+        )
+
+        # Only "full" entity should be returned (has both Position and Velocity)
+        assert len(results) == 1
+
+    def test_execute_components_filter_and_missing_component(self) -> None:
+        """Test execute_components with filter and missing iterate component."""
+        # Create entities that pass filter but don't have all iterate components
+        self.world.spawn("partial", {Position: Position(x=5, y=5)})
+        self.world.spawn("full", {Position: Position(x=10, y=10)})
+
+        # Filter passes both, but partial is missing Velocity for iterate
+        results = list(
+            self.world.query()
+            .with_all([Position])
+            .with_filter(lambda e: e.get_component(Position).x < 20)
+            .iterate([Position, Velocity])
+            .execute_components()
+        )
+
+        # Only "full" entity should be returned
+        assert len(results) == 1
+        entity_id, pos, vel = results[0]
+        assert pos.x == 10

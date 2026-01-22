@@ -2,6 +2,7 @@
 
 from typing import List, Tuple
 
+import pytest
 from pydantic.dataclasses import dataclass
 
 from relics import (
@@ -530,3 +531,39 @@ class TestMultiEventObservers:
         world.tick(0)
 
         # Should not raise any errors
+
+
+class TestObserverWorldProperty:
+    """Tests for Observer.world property."""
+
+    def test_observer_world_not_registered(self) -> None:
+        """Test accessing world before registration raises error."""
+
+        class TestObserver(OnEntityCreated):
+            prefab = None
+
+            def on_entity_created(self, entity: Entity) -> None:
+                pass
+
+        observer = TestObserver()
+
+        with pytest.raises(RuntimeError) as exc_info:
+            _ = observer.world
+        assert "Observer is not registered with a world" in str(exc_info.value)
+
+    def test_observer_world_after_registration(self) -> None:
+        """Test accessing world after registration succeeds."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        class TestObserver(OnEntityCreated):
+            prefab = None
+
+            def on_entity_created(self, entity: Entity) -> None:
+                pass
+
+        observer = TestObserver()
+        world.observe(observer)
+
+        # Should not raise
+        assert observer.world is world

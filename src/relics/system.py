@@ -101,7 +101,7 @@ class Frequency:
 
 
 # Singleton for EVERY_TICK frequency
-Frequency.EVERY_TICK = Frequency(every_tick=True)  # type: ignore[misc]
+Frequency.EVERY_TICK = Frequency(every_tick=True)
 
 
 class _WildcardSentinel:

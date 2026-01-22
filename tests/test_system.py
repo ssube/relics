@@ -159,6 +159,14 @@ class TestFrequency:
         # Reset, need more time
         assert freq.should_run(3, 0.3) is False
 
+    def test_default_frequency_always_runs(self) -> None:
+        """Test that default frequency (not every_tick, no interval) always runs."""
+        # Create a frequency that is not every_tick but has default tick_interval=1
+        freq = Frequency(every_tick=False, tick_interval=1, time_interval=0.0)
+        # This should hit the fall-through return True on line 100
+        assert freq.should_run(1, 0.016) is True
+        assert freq.should_run(2, 0.016) is True
+
 
 class TestSystemDependencies:
     """Tests for system dependency resolution."""
@@ -543,3 +551,90 @@ class TestSubSystems:
         world.tick(0.016)
 
         assert execution_order == ["main", "sub1", "sub2", "sub3"]
+
+
+class TestSystemIterate:
+    """Tests for system iterate() functionality."""
+
+    def test_system_with_iterate_collects_components(self) -> None:
+        """Test that system with iterate() receives components by type."""
+        world = World()
+        world.register_prefab(
+            "player",
+            {Position: Position(x=10, y=20), Velocity: Velocity(x=1, y=2)},
+        )
+
+        received_components: List[List[Component]] = []
+
+        class IteratingSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q.with_all([Position, Velocity]).iterate(
+                    [Position, Velocity]
+                )
+
+            def process(
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
+            ) -> None:
+                received_components.clear()
+                received_components.extend(components)
+
+        world.spawn("player")
+        world.spawn("player", {Position: Position(x=30, y=40)})
+        world.register_system(IteratingSystem())
+        world.tick(0.016)
+
+        # Should have two component lists (Position and Velocity)
+        assert len(received_components) == 2
+        # First list is Position components
+        assert len(received_components[0]) == 2
+        assert all(isinstance(c, Position) for c in received_components[0])
+        # Second list is Velocity components
+        assert len(received_components[1]) == 2
+        assert all(isinstance(c, Velocity) for c in received_components[1])
+
+    def test_system_iterate_only_collects_existing_components(self) -> None:
+        """Test that iterate() only collects components that exist on entities."""
+        world = World()
+        world.register_prefab(
+            "full",
+            {Position: Position(x=10, y=20), Velocity: Velocity(x=1, y=2)},
+        )
+        world.register_prefab("partial", {Position: Position(x=5, y=5)})
+
+        received_entities: List[Entity] = []
+        received_components: List[List[Component]] = []
+
+        class IteratingSystem(System):
+            def query(self) -> QueryBuilder:
+                # Query requires Position but iterate requests both
+                return self.q.with_all([Position]).iterate([Position, Velocity])
+
+            def process(
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
+            ) -> None:
+                received_entities.clear()
+                received_entities.extend(entities)
+                received_components.clear()
+                received_components.extend(components)
+
+        world.spawn("full")
+        world.spawn("partial")
+        world.register_system(IteratingSystem())
+        world.tick(0.016)
+
+        # Both entities should be in entities list (match with_all([Position]))
+        assert len(received_entities) == 2
+        # Components are grouped by type
+        assert len(received_components) == 2
+        # First list is Position components - both entities have Position
+        assert len(received_components[0]) == 2
+        assert all(isinstance(c, Position) for c in received_components[0])
+        # Second list is Velocity components - only "full" entity has Velocity
+        assert len(received_components[1]) == 1
+        assert all(isinstance(c, Velocity) for c in received_components[1])

@@ -590,3 +590,179 @@ class TestRelics:
             assert info.name == "test_info"
             assert info.epoch == 5
             assert info.created_at is not None
+
+
+class TestPersistenceEdgeCases:
+    """Tests for edge cases in persistence."""
+
+    def test_load_with_world_component_registry(self) -> None:
+        """Test load uses world's component registry when none provided."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.register_component_type(Position)
+
+        entity = world.spawn("player", {Position: Position(x=10, y=20)})
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            # Load into new world that has Position registered
+            world2 = World()
+            world2.register_component_type(Position)
+            # Don't pass component_registry - should use world2's
+            load(world2, temp_path)
+
+            assert world2.has_entity(entity.id)
+            e = world2.get_entity(entity.id)
+            assert e.get_component(Position).x == 10
+        finally:
+            Path(temp_path).unlink()
+
+    def test_load_skips_unknown_components_in_prefabs(self) -> None:
+        """Test that load skips unknown components in prefab definitions."""
+        # Create a JSON file with an unknown component in prefabs
+        data = {
+            "metadata": {"version": "1.0", "epoch": 0},
+            "prefabs": {
+                "player": {
+                    "components": {
+                        "Position": {"x": 0, "y": 0},
+                        "UnknownComponent": {"value": 42},
+                    }
+                }
+            },
+            "entities": {},
+            "components": {},
+            "relationships": {},
+        }
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(data, f)
+            temp_path = f.name
+
+        try:
+            world = World()
+            # Only provide Position in registry, not UnknownComponent
+            load(world, temp_path, {"Position": Position})
+
+            # Prefab should be loaded with only Position
+            assert "player" in world._prefabs
+            assert Position in world._prefabs["player"]
+        finally:
+            Path(temp_path).unlink()
+
+    def test_load_skips_unknown_components_in_entities(self) -> None:
+        """Test that load skips unknown components when loading entities."""
+        data = {
+            "metadata": {"version": "1.0", "epoch": 0},
+            "prefabs": {},
+            "entities": {"player_1": {"prefab": "player"}},
+            "components": {
+                "Position": {"player_1": {"x": 10, "y": 20}},
+                "UnknownComponent": {"player_1": {"value": 42}},
+            },
+            "relationships": {},
+        }
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(data, f)
+            temp_path = f.name
+
+        try:
+            world = World()
+            # Only provide Position in registry
+            load(world, temp_path, {"Position": Position})
+
+            # Entity should have Position but not the unknown component
+            entity_id = next(world.query().execute_ids())
+            entity = world.get_entity(entity_id)
+            assert entity.has_component(Position)
+            pos = entity.get_component(Position)
+            assert pos.x == 10
+            assert pos.y == 20
+        finally:
+            Path(temp_path).unlink()
+
+    def test_list_relics_nonexistent_directory(self) -> None:
+        """Test list_relics returns empty list for nonexistent directory."""
+        relics = list_relics("/nonexistent/path/to/relics")
+        assert relics == []
+
+    def test_list_relics_skips_underscore_files(self) -> None:
+        """Test list_relics skips files starting with underscore."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a normal relic
+            world = World()
+            world.register_prefab("player", {Position: Position(x=0, y=0)})
+            world.spawn("player")
+            save_relic(world, "normal_relic", temp_dir)
+
+            # Create a file starting with underscore (legacy metadata)
+            underscore_path = Path(temp_dir) / "_metadata.json"
+            underscore_path.write_text('{"some": "data"}')
+
+            relics = list_relics(temp_dir)
+            names = [r.name for r in relics]
+
+            # Should include normal_relic but not _metadata
+            assert "normal_relic" in names
+            assert len(names) == 1
+
+    def test_list_relics_skips_invalid_json(self) -> None:
+        """Test list_relics skips files with invalid JSON."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a normal relic
+            world = World()
+            world.register_prefab("player", {Position: Position(x=0, y=0)})
+            world.spawn("player")
+            save_relic(world, "valid_relic", temp_dir)
+
+            # Create an invalid JSON file
+            invalid_path = Path(temp_dir) / "invalid.json"
+            invalid_path.write_text("this is not valid json {{{")
+
+            relics = list_relics(temp_dir)
+            names = [r.name for r in relics]
+
+            # Should include valid_relic but not invalid
+            assert "valid_relic" in names
+            assert "invalid" not in names
+
+    def test_pydantic_model_fields_serialization(self) -> None:
+        """Test serialization of Pydantic v2 BaseModel with model_fields."""
+        from pydantic import BaseModel
+
+        class ModelComponent(BaseModel, Component):
+            name: str
+            score: int
+
+        world = World()
+        world.register_prefab(
+            "test", {ModelComponent: ModelComponent(name="test", score=100)}
+        )
+        world.register_component_type(ModelComponent)
+
+        entity = world.spawn(
+            "test", {ModelComponent: ModelComponent(name="loaded", score=50)}
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            # Verify serialization uses model_fields
+            assert "ModelComponent" in data["components"]
+            assert (
+                data["components"]["ModelComponent"][str(entity.id)]["name"] == "loaded"
+            )
+            assert data["components"]["ModelComponent"][str(entity.id)]["score"] == 50
+        finally:
+            Path(temp_path).unlink()
