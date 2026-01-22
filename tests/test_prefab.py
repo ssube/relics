@@ -217,3 +217,61 @@ class TestPrefabJson:
             assert prefab[Team].name == "Blue Team"
         finally:
             Path(temp_path).unlink()
+
+
+class TestComponentSerialization:
+    """Tests for different component serialization formats."""
+
+    def test_serialize_pydantic_base_model(self) -> None:
+        """Test serializing Pydantic BaseModel components."""
+        from pydantic import BaseModel
+
+        class CustomComponent(BaseModel, Component):
+            name: str
+            value: int
+
+        world = World()
+        comp = CustomComponent(name="a", value=1)
+        world.register_prefab("test", {CustomComponent: comp})
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save_prefabs_to_json(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            assert "CustomComponent" in data["test"]["components"]
+            assert data["test"]["components"]["CustomComponent"]["name"] == "a"
+            assert data["test"]["components"]["CustomComponent"]["value"] == 1
+        finally:
+            Path(temp_path).unlink()
+
+    def test_serialize_plain_class_component(self) -> None:
+        """Test serializing plain class components with __dict__."""
+
+        class PlainComponent(Component):
+            def __init__(self, name: str, value: int):
+                self.name = name
+                self.value = value
+
+        world = World()
+        comp = PlainComponent(name="b", value=2)
+        world.register_prefab("test", {PlainComponent: comp})
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save_prefabs_to_json(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            assert "PlainComponent" in data["test"]["components"]
+            assert data["test"]["components"]["PlainComponent"]["name"] == "b"
+            assert data["test"]["components"]["PlainComponent"]["value"] == 2
+        finally:
+            Path(temp_path).unlink()

@@ -3,10 +3,10 @@
 A relic is a snapshot of a world at a particular epoch.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Core types
-from relics.types import Component, Edge, EntityId
+from relics.types import Component, CustomEvent, Edge, EntityId
 
 # Entity handle
 from relics.entity import Entity
@@ -22,16 +22,25 @@ from relics.system import Frequency, RunOrder, System
 
 # Observers
 from relics.observer import (
+    ComponentObserver,
+    EntityObserver,
     Observer,
     OnComponentAdded,
     OnComponentChanged,
     OnComponentRemoved,
+    OnCustomEvent,
     OnEntityCreated,
     OnEntityDestroyed,
+    OnRelationshipAdded,
+    OnRelationshipRemoved,
+    RelationshipObserver,
 )
 
 # Monitored decorator
 from relics.monitored import is_monitored, monitored
+
+# Indexes
+from relics.index import IndexView, LazyIndex, MaterializedIndex
 
 # Persistence
 from relics.persistence import (
@@ -56,7 +65,9 @@ from relics.errors import (
     ComponentNotFoundError,
     DuplicateComponentError,
     EntityNotFoundError,
+    IndexNotFoundError,
     PrefabNotFoundError,
+    RelationshipValidationError,
     RelicError,
     SystemDependencyCycleError,
 )
@@ -66,6 +77,7 @@ __all__ = [
     "__version__",
     # Core types
     "Component",
+    "CustomEvent",
     "Edge",
     "EntityId",
     # Entity
@@ -79,15 +91,25 @@ __all__ = [
     "RunOrder",
     "System",
     # Observers
+    "ComponentObserver",
+    "EntityObserver",
     "Observer",
     "OnComponentAdded",
     "OnComponentChanged",
     "OnComponentRemoved",
+    "OnCustomEvent",
     "OnEntityCreated",
     "OnEntityDestroyed",
+    "OnRelationshipAdded",
+    "OnRelationshipRemoved",
+    "RelationshipObserver",
     # Monitored
     "is_monitored",
     "monitored",
+    # Indexes
+    "IndexView",
+    "LazyIndex",
+    "MaterializedIndex",
     # Persistence
     "RelicInfo",
     "list_relics",
@@ -104,7 +126,9 @@ __all__ = [
     "ComponentNotFoundError",
     "DuplicateComponentError",
     "EntityNotFoundError",
+    "IndexNotFoundError",
     "PrefabNotFoundError",
+    "RelationshipValidationError",
     "RelicError",
     "SystemDependencyCycleError",
 ]

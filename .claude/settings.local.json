@@ -6,7 +6,8 @@
       "Bash(venv/bin/black --check src/)",
       "Bash(venv/bin/mypy:*)",
       "Bash(venv/bin/pytest:*)",
-      "Bash(venv/bin/black:*)"
+      "Bash(venv/bin/black:*)",
+      "Bash(tree:*)"
     ]
   }
 }

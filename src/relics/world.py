@@ -4,17 +4,20 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type, Union
 
 from relics.entity import Entity
 from relics.errors import (
     EntityNotFoundError,
+    IndexNotFoundError,
     PrefabNotFoundError,
+    RelationshipValidationError,
     SystemDependencyCycleError,
 )
-from relics.types import Component, EntityId
+from relics.types import Component, CustomEvent, Edge, EntityId
 
 if TYPE_CHECKING:
+    from relics.index import IndexView
     from relics.observer import Observer
     from relics.query import QueryBuilder
     from relics.system import System
@@ -92,6 +95,22 @@ class World:
 
         # Component type registry (for persistence)
         self._component_types: Dict[str, Type[Component]] = {}
+
+        # Relationship storage
+        # Outgoing: source_id -> {edge_type -> [(edge, target_id), ...]}
+        self._relationships: Dict[
+            EntityId, Dict[Type[Edge], List[Tuple[Edge, EntityId]]]
+        ] = {}
+        # Incoming index: target_id -> {edge_type -> [(source_id, edge), ...]}
+        self._incoming_relationships: Dict[
+            EntityId, Dict[Type[Edge], List[Tuple[EntityId, Edge]]]
+        ] = {}
+
+        # Edge type registry (for persistence)
+        self._edge_types: Dict[str, Type[Edge]] = {}
+
+        # Secondary indexes
+        self._indexes: Dict[str, "IndexView"] = {}
 
     @property
     def epoch(self) -> int:
@@ -222,6 +241,29 @@ class World:
         )
         self._queue_entity_destroyed(entity_handle)
 
+        # Clean up outgoing relationships
+        if entity_id in self._relationships:
+            for edge_type, edges in list(self._relationships[entity_id].items()):
+                for edge, target_id in list(edges):
+                    self._remove_relationship(entity_id, edge_type, target_id)
+            del self._relationships[entity_id]
+
+        # Clean up incoming relationships (where this entity is the target)
+        if entity_id in self._incoming_relationships:
+            for edge_type, incoming_edges in list(
+                self._incoming_relationships[entity_id].items()
+            ):
+                for source_id, _edge in list(incoming_edges):
+                    # Remove from source's outgoing relationships
+                    if source_id in self._relationships:
+                        if edge_type in self._relationships[source_id]:
+                            self._relationships[source_id][edge_type] = [
+                                (e, t)
+                                for e, t in self._relationships[source_id][edge_type]
+                                if t != entity_id
+                            ]
+            del self._incoming_relationships[entity_id]
+
         # Remove from storage
         del self._entities[entity_id]
 
@@ -275,6 +317,203 @@ class World:
         """
         entity = Entity(self, entity_id)
         self._queue_component_changed(entity, old_value, new_value)
+
+    def register_edge_type(self, edge_type: Type[Edge]) -> None:
+        """Register an edge type for persistence.
+
+        Args:
+            edge_type: The edge class to register.
+        """
+        self._edge_types[edge_type.__name__] = edge_type
+
+    def _add_relationship(
+        self, source_id: EntityId, edge: Edge, target_id: EntityId
+    ) -> None:
+        """Internal method to add a relationship between entities.
+
+        Args:
+            source_id: The source entity's ID.
+            edge: The edge instance defining the relationship.
+            target_id: The target entity's ID.
+
+        Raises:
+            EntityNotFoundError: If source or target doesn't exist.
+            RelationshipValidationError: If edge validation fails.
+        """
+        # Validate entities exist
+        if source_id not in self._entities:
+            raise EntityNotFoundError(f"Source entity {source_id} not found")
+        if target_id not in self._entities:
+            raise EntityNotFoundError(f"Target entity {target_id} not found")
+
+        # Validate the edge
+        source = Entity(self, source_id)
+        target = Entity(self, target_id)
+        try:
+            if not edge.validate(source, target):
+                raise RelationshipValidationError(
+                    f"Edge validation failed for {type(edge).__name__} "
+                    f"from {source_id} to {target_id}"
+                )
+        except RelationshipValidationError:
+            raise
+        except Exception as e:
+            raise RelationshipValidationError(
+                f"Edge validation raised exception: {e}"
+            ) from e
+
+        edge_type = type(edge)
+        self.register_edge_type(edge_type)
+
+        # Initialize storage if needed
+        if source_id not in self._relationships:
+            self._relationships[source_id] = {}
+        if edge_type not in self._relationships[source_id]:
+            self._relationships[source_id][edge_type] = []
+
+        if target_id not in self._incoming_relationships:
+            self._incoming_relationships[target_id] = {}
+        if edge_type not in self._incoming_relationships[target_id]:
+            self._incoming_relationships[target_id][edge_type] = []
+
+        # Add the relationship
+        self._relationships[source_id][edge_type].append((edge, target_id))
+        self._incoming_relationships[target_id][edge_type].append((source_id, edge))
+
+        # Queue observer
+        self._queue_relationship_added(source, edge, target)
+
+    def _remove_relationship(
+        self, source_id: EntityId, edge_type: Type[Edge], target_id: EntityId
+    ) -> None:
+        """Internal method to remove a relationship between entities.
+
+        Args:
+            source_id: The source entity's ID.
+            edge_type: The type of edge to remove.
+            target_id: The target entity's ID.
+        """
+        # Find and remove the edge
+        edge_to_remove: Optional[Edge] = None
+
+        if source_id in self._relationships:
+            if edge_type in self._relationships[source_id]:
+                edges = self._relationships[source_id][edge_type]
+                for i, (edge, tid) in enumerate(edges):
+                    if tid == target_id:
+                        edge_to_remove = edge
+                        edges.pop(i)
+                        break
+
+        if target_id in self._incoming_relationships:
+            if edge_type in self._incoming_relationships[target_id]:
+                incoming = self._incoming_relationships[target_id][edge_type]
+                for i, (sid, edge) in enumerate(incoming):
+                    if sid == source_id:
+                        incoming.pop(i)
+                        break
+
+        # Queue observer if edge was found and entities still exist
+        if edge_to_remove is not None:
+            if source_id in self._entities and target_id in self._entities:
+                source = Entity(self, source_id)
+                target = Entity(self, target_id)
+                self._queue_relationship_removed(source, edge_to_remove, target)
+
+    def _get_relationships(
+        self, entity_id: EntityId, edge_type: Type[Edge]
+    ) -> List[Tuple[Edge, EntityId]]:
+        """Internal method to get outgoing relationships.
+
+        Args:
+            entity_id: The source entity's ID.
+            edge_type: The type of edge to get.
+
+        Returns:
+            List of (edge, target_id) tuples.
+        """
+        if entity_id not in self._relationships:
+            return []
+        if edge_type not in self._relationships[entity_id]:
+            return []
+        return list(self._relationships[entity_id][edge_type])
+
+    def _get_incoming_relationships(
+        self, entity_id: EntityId, edge_type: Type[Edge]
+    ) -> List[Tuple[EntityId, Edge]]:
+        """Internal method to get incoming relationships.
+
+        Args:
+            entity_id: The target entity's ID.
+            edge_type: The type of edge to get.
+
+        Returns:
+            List of (source_id, edge) tuples.
+        """
+        if entity_id not in self._incoming_relationships:
+            return []
+        if edge_type not in self._incoming_relationships[entity_id]:
+            return []
+        return list(self._incoming_relationships[entity_id][edge_type])
+
+    def _has_relationship(
+        self, entity_id: EntityId, edge_type: Type[Edge], target_id: Optional[EntityId]
+    ) -> bool:
+        """Check if entity has outgoing relationship of given type.
+
+        Args:
+            entity_id: The source entity's ID.
+            edge_type: The type of edge to check.
+            target_id: Optional specific target to check for.
+
+        Returns:
+            True if the relationship exists.
+        """
+        if entity_id not in self._relationships:
+            return False
+        if edge_type not in self._relationships[entity_id]:
+            return False
+        if target_id is None:
+            return len(self._relationships[entity_id][edge_type]) > 0
+        return any(
+            tid == target_id
+            for _, tid in self._relationships[entity_id][edge_type]
+        )
+
+    def _has_incoming_relationship(
+        self, entity_id: EntityId, edge_type: Type[Edge], source_id: Optional[EntityId]
+    ) -> bool:
+        """Check if entity has incoming relationship of given type.
+
+        Args:
+            entity_id: The target entity's ID.
+            edge_type: The type of edge to check.
+            source_id: Optional specific source to check for.
+
+        Returns:
+            True if the relationship exists.
+        """
+        if entity_id not in self._incoming_relationships:
+            return False
+        if edge_type not in self._incoming_relationships[entity_id]:
+            return False
+        if source_id is None:
+            return len(self._incoming_relationships[entity_id][edge_type]) > 0
+        return any(
+            sid == source_id
+            for sid, _ in self._incoming_relationships[entity_id][edge_type]
+        )
+
+    def emit(self, event: CustomEvent) -> None:
+        """Emit a custom event.
+
+        The event will be queued and delivered to matching OnCustomEvent
+        observers at the end of the current tick.
+
+        Args:
+            event: The custom event to emit.
+        """
+        self._queue_custom_event(event)
 
     def query(self) -> "QueryBuilder":
         """Create a new query builder.
@@ -412,7 +651,7 @@ class World:
 
     def _queue_entity_created(self, entity: Entity) -> None:
         """Queue OnEntityCreated events for observers."""
-        from relics.observer import OnEntityCreated
+        from relics.observer import EntityObserver, OnEntityCreated
 
         for observer in self._observers:
             if isinstance(observer, OnEntityCreated):
@@ -420,10 +659,15 @@ class World:
                     self._observer_queue.append(
                         (observer, ("on_entity_created", entity))
                     )
+            elif isinstance(observer, EntityObserver):
+                if observer.prefab is None or observer.prefab == entity.prefab:
+                    self._observer_queue.append(
+                        (observer, ("on_entity_created", entity))
+                    )
 
     def _queue_entity_destroyed(self, entity: Entity) -> None:
         """Queue OnEntityDestroyed events for observers."""
-        from relics.observer import OnEntityDestroyed
+        from relics.observer import EntityObserver, OnEntityDestroyed
 
         for observer in self._observers:
             if isinstance(observer, OnEntityDestroyed):
@@ -431,10 +675,15 @@ class World:
                     self._observer_queue.append(
                         (observer, ("on_entity_destroyed", entity))
                     )
+            elif isinstance(observer, EntityObserver):
+                if observer.prefab is None or observer.prefab == entity.prefab:
+                    self._observer_queue.append(
+                        (observer, ("on_entity_destroyed", entity))
+                    )
 
     def _queue_component_added(self, entity: Entity, component: Component) -> None:
         """Queue OnComponentAdded events for observers."""
-        from relics.observer import OnComponentAdded
+        from relics.observer import ComponentObserver, OnComponentAdded
 
         component_type = type(component)
         for observer in self._observers:
@@ -443,14 +692,24 @@ class World:
                     self._observer_queue.append(
                         (observer, ("on_component_added", entity, component))
                     )
+            elif isinstance(observer, ComponentObserver):
+                if observer.component_type is component_type:
+                    self._observer_queue.append(
+                        (observer, ("on_component_added", entity, component))
+                    )
 
     def _queue_component_removed(self, entity: Entity, component: Component) -> None:
         """Queue OnComponentRemoved events for observers."""
-        from relics.observer import OnComponentRemoved
+        from relics.observer import ComponentObserver, OnComponentRemoved
 
         component_type = type(component)
         for observer in self._observers:
             if isinstance(observer, OnComponentRemoved):
+                if observer.component_type is component_type:
+                    self._observer_queue.append(
+                        (observer, ("on_component_removed", entity, component))
+                    )
+            elif isinstance(observer, ComponentObserver):
                 if observer.component_type is component_type:
                     self._observer_queue.append(
                         (observer, ("on_component_removed", entity, component))
@@ -460,7 +719,7 @@ class World:
         self, entity: Entity, old_value: Component, new_value: Component
     ) -> None:
         """Queue OnComponentChanged events for observers."""
-        from relics.observer import OnComponentChanged
+        from relics.observer import ComponentObserver, OnComponentChanged
 
         component_type = type(new_value)
         for observer in self._observers:
@@ -472,6 +731,62 @@ class World:
                             ("on_component_changed", entity, old_value, new_value),
                         )
                     )
+            elif isinstance(observer, ComponentObserver):
+                if observer.component_type is component_type:
+                    self._observer_queue.append(
+                        (
+                            observer,
+                            ("on_component_changed", entity, old_value, new_value),
+                        )
+                    )
+
+    def _queue_relationship_added(
+        self, source: Entity, edge: Edge, target: Entity
+    ) -> None:
+        """Queue OnRelationshipAdded events for observers."""
+        from relics.observer import OnRelationshipAdded, RelationshipObserver
+
+        edge_type = type(edge)
+        for observer in self._observers:
+            if isinstance(observer, OnRelationshipAdded):
+                if observer.edge_type is edge_type:
+                    self._observer_queue.append(
+                        (observer, ("on_relationship_added", source, edge, target))
+                    )
+            elif isinstance(observer, RelationshipObserver):
+                if observer.edge_type is edge_type:
+                    self._observer_queue.append(
+                        (observer, ("on_relationship_added", source, edge, target))
+                    )
+
+    def _queue_relationship_removed(
+        self, source: Entity, edge: Edge, target: Entity
+    ) -> None:
+        """Queue OnRelationshipRemoved events for observers."""
+        from relics.observer import OnRelationshipRemoved, RelationshipObserver
+
+        edge_type = type(edge)
+        for observer in self._observers:
+            if isinstance(observer, OnRelationshipRemoved):
+                if observer.edge_type is edge_type:
+                    self._observer_queue.append(
+                        (observer, ("on_relationship_removed", source, edge, target))
+                    )
+            elif isinstance(observer, RelationshipObserver):
+                if observer.edge_type is edge_type:
+                    self._observer_queue.append(
+                        (observer, ("on_relationship_removed", source, edge, target))
+                    )
+
+    def _queue_custom_event(self, event: CustomEvent) -> None:
+        """Queue OnCustomEvent events for observers."""
+        from relics.observer import OnCustomEvent
+
+        event_type = type(event)
+        for observer in self._observers:
+            if isinstance(observer, OnCustomEvent):
+                if observer.event_type is event_type:
+                    self._observer_queue.append((observer, ("on_event", event)))
 
     def _process_observer_queue(self) -> None:
         """Process all queued observer events."""
@@ -481,3 +796,104 @@ class World:
             method_args = args[1:]
             method = getattr(observer, method_name)
             method(*method_args)
+
+    def create_index(
+        self,
+        name: str,
+        query: "QueryBuilder",
+        watches: Optional[List[Type[Component]]] = None,
+        materialized: bool = False,
+    ) -> "IndexView":
+        """Create a secondary index for efficient querying.
+
+        Args:
+            name: Unique name for the index.
+            query: The query that defines which entities are in the index.
+            watches: Component types that trigger index updates (for materialized).
+            materialized: If True, maintain cached set; if False, re-execute query.
+
+        Returns:
+            The created IndexView.
+        """
+        from relics.index import LazyIndex, MaterializedIndex
+
+        if materialized:
+            index: "IndexView" = MaterializedIndex(self, query, watches or [])
+        else:
+            index = LazyIndex(self, query)
+
+        self._indexes[name] = index
+        return index
+
+    def index(self, name: str) -> "IndexView":
+        """Get a secondary index by name.
+
+        Args:
+            name: The name of the index.
+
+        Returns:
+            The IndexView for the named index.
+
+        Raises:
+            IndexNotFoundError: If the index doesn't exist.
+        """
+        if name not in self._indexes:
+            raise IndexNotFoundError(f"Index '{name}' not found")
+        return self._indexes[name]
+
+    def export_entity(self, entity_id: EntityId) -> Dict[str, Any]:
+        """Export entity data in a structured format.
+
+        Returns all components and relationships for an entity
+        in a format suitable for tooling/debugging.
+
+        Args:
+            entity_id: The entity's ID.
+
+        Returns:
+            Dictionary with entity data:
+            {
+                "id": str(entity_id),
+                "prefab": prefab_name,
+                "components": {ComponentName: {field: value, ...}, ...},
+                "relationships": {EdgeType: [target_ids, ...], ...},
+                "incoming_relationships": {EdgeType: [source_ids, ...], ...}
+            }
+
+        Raises:
+            EntityNotFoundError: If the entity doesn't exist.
+        """
+        if entity_id not in self._entities:
+            raise EntityNotFoundError(f"Entity {entity_id} not found")
+
+        from relics.persistence import _component_to_dict
+
+        result: Dict[str, Any] = {
+            "id": str(entity_id),
+            "prefab": entity_id.prefab,
+            "components": {},
+            "relationships": {},
+            "incoming_relationships": {},
+        }
+
+        # Export components
+        for comp_type, comp in self._entities[entity_id].items():
+            result["components"][comp_type.__name__] = _component_to_dict(comp)
+
+        # Export outgoing relationships
+        if entity_id in self._relationships:
+            for edge_type, edges in self._relationships[entity_id].items():
+                result["relationships"][edge_type.__name__] = [
+                    {"edge": _component_to_dict(edge), "target": str(target_id)}
+                    for edge, target_id in edges
+                ]
+
+        # Export incoming relationships
+        if entity_id in self._incoming_relationships:
+            for edge_type, incoming in self._incoming_relationships[entity_id].items():
+                result["incoming_relationships"][edge_type.__name__] = [
+                    {"source": str(source_id), "edge": _component_to_dict(edge)}
+                    for source_id, edge in incoming
+                ]
+
+        return result

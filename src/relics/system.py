@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import TYPE_CHECKING, ClassVar, Dict, List, Type
+from typing import TYPE_CHECKING, Callable, ClassVar, Dict, List, Tuple, Type
 
 from relics.entity import Entity
 from relics.types import Component
@@ -187,6 +187,24 @@ class System(ABC):
         """
         return Frequency.EVERY_TICK
 
+    def sub_systems(
+        self,
+    ) -> List[
+        Tuple[
+            "QueryBuilder",
+            Callable[[List[Entity], List[List[Component]], float], None],
+        ]
+    ]:
+        """Define sub-systems with separate queries.
+
+        Override this method to define sub-systems that run after the main
+        process() method. Each sub-system has its own query and process function.
+
+        Returns:
+            List of (QueryBuilder, process_function) tuples.
+        """
+        return []
+
     @abstractmethod
     def process(
         self,
@@ -240,3 +258,19 @@ class System(ABC):
                 components.append(comp_list)
 
         self.process(entities, components, delta)
+
+        # Execute sub-systems
+        for sub_query, sub_process in self.sub_systems():
+            sub_entities: List[Entity] = list(sub_query.execute_entities())
+
+            # Collect components if iterate() was used on sub-query
+            sub_components: List[List[Component]] = []
+            if sub_query._iterate_types:
+                for comp_type in sub_query._iterate_types:
+                    comp_list = []
+                    for entity in sub_entities:
+                        if entity.has_component(comp_type):
+                            comp_list.append(entity.get_component(comp_type))
+                    sub_components.append(comp_list)
+
+            sub_process(sub_entities, sub_components, delta)

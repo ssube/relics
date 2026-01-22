@@ -14,7 +14,7 @@ from typing import (
 )
 
 from relics.entity import Entity
-from relics.types import Component, EntityId
+from relics.types import Component, Edge, EntityId
 
 if TYPE_CHECKING:
     from relics.world import World
@@ -39,6 +39,9 @@ class QueryBuilder:
         self._with_none: List[Type[Component]] = []
         self._filters: List[Callable[[Entity], bool]] = []
         self._iterate_types: Optional[List[Type[Component]]] = None
+        # Relationship criteria
+        self._with_relationships: List[Tuple[Type[Edge], Optional[EntityId]]] = []
+        self._with_incoming: List[Tuple[Type[Edge], Optional[EntityId]]] = []
 
     def with_all(self, component_types: List[Type[Component]]) -> "QueryBuilder":
         """Entities must have ALL of these components.
@@ -102,6 +105,36 @@ class QueryBuilder:
         self._iterate_types = component_types
         return self
 
+    def with_relationship(
+        self, edge_type: Type[Edge], target: Optional[EntityId] = None
+    ) -> "QueryBuilder":
+        """Entities must have an outgoing relationship of this type.
+
+        Args:
+            edge_type: The type of edge to require.
+            target: Optional specific target entity to require.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._with_relationships.append((edge_type, target))
+        return self
+
+    def with_incoming(
+        self, edge_type: Type[Edge], source: Optional[EntityId] = None
+    ) -> "QueryBuilder":
+        """Entities must have an incoming relationship of this type.
+
+        Args:
+            edge_type: The type of edge to require.
+            source: Optional specific source entity to require.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._with_incoming.append((edge_type, source))
+        return self
+
     def _matches(
         self,
         entity_id: EntityId,
@@ -134,6 +167,16 @@ class QueryBuilder:
         # Check with_none
         for comp_type in self._with_none:
             if comp_type in components:
+                return False
+
+        # Check outgoing relationships
+        for edge_type, target in self._with_relationships:
+            if not self._world._has_relationship(entity_id, edge_type, target):
+                return False
+
+        # Check incoming relationships
+        for edge_type, source in self._with_incoming:
+            if not self._world._has_incoming_relationship(entity_id, edge_type, source):
                 return False
 
         return True

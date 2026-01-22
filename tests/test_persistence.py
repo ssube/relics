@@ -41,6 +41,118 @@ class Team(Component):
     id: str
 
 
+class TestComponentSerializationFormats:
+    """Tests for different component serialization formats in persistence."""
+
+    def test_serialize_pydantic_base_model(self) -> None:
+        """Test saving/loading Pydantic BaseModel components."""
+        from pydantic import BaseModel
+
+        class CustomData(BaseModel, Component):
+            name: str
+            score: int
+
+        world = World()
+        world.register_prefab("test", {CustomData: CustomData(name="test", score=100)})
+        world.register_component_type(CustomData)
+
+        entity = world.spawn("test", {CustomData: CustomData(name="loaded", score=50)})
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            # Verify serialization
+            assert "CustomData" in data["components"]
+            assert data["components"]["CustomData"][str(entity.id)]["name"] == "loaded"
+            assert data["components"]["CustomData"][str(entity.id)]["score"] == 50
+
+            # Test load
+            world2 = World()
+            load(world2, temp_path, {"CustomData": CustomData})
+
+            e = world2.get_entity(entity.id)
+            comp = e.get_component(CustomData)
+            assert comp.name == "loaded"
+            assert comp.score == 50
+        finally:
+            Path(temp_path).unlink()
+
+    def test_serialize_plain_class_component(self) -> None:
+        """Test saving/loading plain class components with __dict__."""
+
+        class PlainData(Component):
+            def __init__(self, tag: str, count: int):
+                self.tag = tag
+                self.count = count
+
+        world = World()
+        world.register_prefab("test", {PlainData: PlainData(tag="init", count=0)})
+        world.register_component_type(PlainData)
+
+        entity = world.spawn("test", {PlainData: PlainData(tag="custom", count=42)})
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            # Verify serialization
+            assert "PlainData" in data["components"]
+            assert data["components"]["PlainData"][str(entity.id)]["tag"] == "custom"
+            assert data["components"]["PlainData"][str(entity.id)]["count"] == 42
+
+            # Test load
+            world2 = World()
+            load(world2, temp_path, {"PlainData": PlainData})
+
+            e = world2.get_entity(entity.id)
+            comp = e.get_component(PlainData)
+            assert comp.tag == "custom"
+            assert comp.count == 42
+        finally:
+            Path(temp_path).unlink()
+
+    def test_skip_private_fields(self) -> None:
+        """Test that private fields are excluded from serialization."""
+
+        class DataWithPrivate(Component):
+            def __init__(self, value: int):
+                self.value = value
+                self._internal = "secret"
+
+        world = World()
+        world.register_prefab("test", {DataWithPrivate: DataWithPrivate(value=10)})
+        world.register_component_type(DataWithPrivate)
+
+        entity = world.spawn("test")
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            # Private field should not be serialized
+            comp_data = data["components"]["DataWithPrivate"][str(entity.id)]
+            assert "value" in comp_data
+            assert "_internal" not in comp_data
+        finally:
+            Path(temp_path).unlink()
+
+
 class TestJsonPersistence:
     """Tests for JSON save/load."""
 
@@ -174,6 +286,198 @@ class TestJsonPersistence:
             Path(temp_path).unlink()
 
 
+class TestRelationshipPersistence:
+    """Tests for saving and loading relationships."""
+
+    def test_save_relationships(self) -> None:
+        """Test that relationships are saved to JSON."""
+        from relics import Edge
+
+        @dataclass
+        class AllyTo(Edge):
+            trust_level: float = 1.0
+
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player", {Position: Position(x=10, y=20)})
+        p2 = world.spawn("player", {Position: Position(x=30, y=40)})
+
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            with open(temp_path) as f:
+                data = json.load(f)
+
+            assert "relationships" in data
+            assert "AllyTo" in data["relationships"]
+            assert str(p1.id) in data["relationships"]["AllyTo"]
+            rels = data["relationships"]["AllyTo"][str(p1.id)]
+            assert len(rels) == 1
+            assert rels[0]["target"] == str(p2.id)
+            assert rels[0]["edge"]["trust_level"] == 0.9
+        finally:
+            Path(temp_path).unlink()
+
+    def test_load_relationships(self) -> None:
+        """Test that relationships are loaded from JSON."""
+        from relics import Edge
+
+        @dataclass
+        class AllyTo(Edge):
+            trust_level: float = 1.0
+
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player", {Position: Position(x=10, y=20)})
+        p2 = world.spawn("player", {Position: Position(x=30, y=40)})
+
+        p1.add_relationship(AllyTo(trust_level=0.8), p2.id)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            # Load into new world
+            world2 = World()
+            component_registry = {"Position": Position}
+            edge_registry = {"AllyTo": AllyTo}
+            load(world2, temp_path, component_registry, edge_registry)
+
+            # Check relationships loaded
+            loaded_p1 = world2.get_entity(p1.id)
+            assert loaded_p1.has_relationship(AllyTo, p2.id)
+
+            relationships = loaded_p1.get_relationships(AllyTo)
+            assert len(relationships) == 1
+            edge, target_id = relationships[0]
+            assert target_id == p2.id
+            assert edge.trust_level == 0.8
+
+            # Check incoming relationship
+            loaded_p2 = world2.get_entity(p2.id)
+            assert loaded_p2.has_incoming_relationship(AllyTo, p1.id)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_skip_unknown_edge_types(self) -> None:
+        """Test that unknown edge types are skipped during load."""
+        from relics import Edge
+
+        @dataclass
+        class AllyTo(Edge):
+            trust_level: float = 1.0
+
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+
+        p1.add_relationship(AllyTo(), p2.id)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            save(world, temp_path)
+
+            # Load without edge registry - should skip relationships
+            world2 = World()
+            load(world2, temp_path, {"Position": Position}, {})
+
+            loaded_p1 = world2.get_entity(p1.id)
+            # Should have no relationships since AllyTo wasn't registered
+            assert not loaded_p1.has_relationship(AllyTo)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_skip_missing_entities_in_relationships(self) -> None:
+        """Test that relationships with missing entities are skipped."""
+        # Create a JSON file with a relationship pointing to non-existent entity
+        data = {
+            "metadata": {"version": "1.0", "epoch": 0},
+            "prefabs": {},
+            "entities": {"player_1": {"prefab": "player"}},
+            "components": {"Position": {"player_1": {"x": 0, "y": 0}}},
+            "relationships": {
+                "AllyTo": {
+                    "player_1": [{"target": "player_999", "edge": {"trust_level": 1.0}}]
+                }
+            },
+        }
+
+        from relics import Edge
+
+        @dataclass
+        class AllyTo(Edge):
+            trust_level: float = 1.0
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(data, f)
+            temp_path = f.name
+
+        try:
+            world = World()
+            world.register_component_type(Position)
+            load(world, temp_path, {"Position": Position}, {"AllyTo": AllyTo})
+
+            # Should load the entity but skip the relationship
+            assert world.has_entity(world.query().execute_ids().__next__())
+        finally:
+            Path(temp_path).unlink()
+
+    def test_skip_missing_source_in_relationships(self) -> None:
+        """Test that relationships from missing source entities are skipped."""
+        # Create a JSON file with a relationship from non-existent entity
+        data = {
+            "metadata": {"version": "1.0", "epoch": 0},
+            "prefabs": {},
+            "entities": {"player_1": {"prefab": "player"}},
+            "components": {"Position": {"player_1": {"x": 0, "y": 0}}},
+            "relationships": {
+                "AllyTo": {
+                    "player_999": [{"target": "player_1", "edge": {"trust_level": 1.0}}]
+                }
+            },
+        }
+
+        from relics import Edge
+
+        @dataclass
+        class AllyTo(Edge):
+            trust_level: float = 1.0
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(data, f)
+            temp_path = f.name
+
+        try:
+            world = World()
+            world.register_component_type(Position)
+            load(world, temp_path, {"Position": Position}, {"AllyTo": AllyTo})
+
+            # Should load the entity but skip the relationship
+            entity_id = next(world.query().execute_ids())
+            loaded_entity = world.get_entity(entity_id)
+            # No incoming relationships since source doesn't exist
+            assert not loaded_entity.has_incoming_relationship(AllyTo)
+        finally:
+            Path(temp_path).unlink()
+
+
 class TestRelics:
     """Tests for named relic snapshots."""
 
@@ -190,9 +494,11 @@ class TestRelics:
             relic_path = Path(temp_dir) / "test_save.json"
             assert relic_path.exists()
 
-            # Verify metadata file
-            metadata_path = Path(temp_dir) / "_relics.json"
-            assert metadata_path.exists()
+            # Verify metadata contains relic name (self-contained)
+            import json
+            with relic_path.open("r") as f:
+                data = json.load(f)
+            assert data["metadata"]["relic_name"] == "test_save"
 
     def test_load_relic(self) -> None:
         """Test loading a named relic."""

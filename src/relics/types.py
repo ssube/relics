@@ -86,3 +86,22 @@ class Edge:
             RelationshipValidationError: If validation fails.
         """
         return True
+
+
+class CustomEvent:
+    """Base class for custom events.
+
+    Custom events allow user-defined event types that can be emitted
+    via World.emit() and observed via OnCustomEvent observers.
+
+    Use Pydantic dataclasses to define event fields.
+
+    Example:
+        @dataclass
+        class DamageEvent(CustomEvent):
+            source: EntityId
+            target: EntityId
+            amount: float
+    """
+
+    pass

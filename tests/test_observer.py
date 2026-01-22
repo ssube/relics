@@ -6,11 +6,15 @@ from pydantic.dataclasses import dataclass
 
 from relics import (
     Component,
+    ComponentObserver,
+    Edge,
     Entity,
+    EntityObserver,
     OnComponentAdded,
     OnComponentRemoved,
     OnEntityCreated,
     OnEntityDestroyed,
+    RelationshipObserver,
     World,
 )
 
@@ -307,3 +311,222 @@ class TestObserverQueue:
         ghost_pos = ghost.get_component(Position)
         assert ghost_pos.x == 10
         assert ghost_pos.y == 20
+
+
+@dataclass
+class AllyTo(Edge):
+    """Test edge for relationships."""
+
+    trust_level: float = 1.0
+
+
+class TestMultiEventObservers:
+    """Tests for multi-event observers (ComponentObserver, EntityObserver, etc.)."""
+
+    def test_component_observer_add_and_remove(self) -> None:
+        """Test ComponentObserver receives add and remove events."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        events = []
+
+        class HealthTracker(ComponentObserver):
+            component_type = Health
+
+            def on_component_added(self, entity, component):
+                events.append(("added", entity.id, component.current))
+
+            def on_component_removed(self, entity, component):
+                events.append(("removed", entity.id, component.current))
+
+        world.observe(HealthTracker())
+
+        player = world.spawn("player")
+        player.add_component(Health(current=100, maximum=100))
+        world.tick(0)
+
+        assert len(events) == 1
+        assert events[0] == ("added", player.id, 100)
+
+        # Remove component
+        player.remove_component(Health)
+        world.tick(0)
+
+        assert len(events) == 2
+        assert events[1] == ("removed", player.id, 100)
+
+    def test_entity_observer_all_events(self) -> None:
+        """Test EntityObserver receives create and destroy events."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        events = []
+
+        class PlayerTracker(EntityObserver):
+            prefab = "player"
+
+            def on_entity_created(self, entity):
+                events.append(("created", entity.id))
+
+            def on_entity_destroyed(self, entity):
+                events.append(("destroyed", entity.id))
+
+        world.observe(PlayerTracker())
+
+        player = world.spawn("player")
+        world.tick(0)
+
+        assert len(events) == 1
+        assert events[0] == ("created", player.id)
+
+        world.remove(player)
+        world.tick(0)
+
+        assert len(events) == 2
+        assert events[1] == ("destroyed", player.id)
+
+    def test_entity_observer_filters_by_prefab(self) -> None:
+        """Test EntityObserver only receives events for its prefab."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.register_prefab("enemy", {Position: Position(x=0, y=0)})
+
+        events = []
+
+        class PlayerTracker(EntityObserver):
+            prefab = "player"
+
+            def on_entity_created(self, entity):
+                events.append(("created", entity.prefab))
+
+            def on_entity_destroyed(self, entity):
+                events.append(("destroyed", entity.prefab))
+
+        world.observe(PlayerTracker())
+
+        player = world.spawn("player")
+        enemy = world.spawn("enemy")
+        world.tick(0)
+
+        # Only player creation should be recorded
+        assert len(events) == 1
+        assert events[0] == ("created", "player")
+
+        world.remove(player)
+        world.remove(enemy)
+        world.tick(0)
+
+        # Only player destruction should be recorded
+        assert len(events) == 2
+        assert events[1] == ("destroyed", "player")
+
+    def test_entity_observer_all_prefabs(self) -> None:
+        """Test EntityObserver with prefab=None receives all events."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.register_prefab("enemy", {Position: Position(x=0, y=0)})
+
+        events = []
+
+        class AllEntityTracker(EntityObserver):
+            prefab = None
+
+            def on_entity_created(self, entity):
+                events.append(("created", entity.prefab))
+
+        world.observe(AllEntityTracker())
+
+        world.spawn("player")
+        world.spawn("enemy")
+        world.tick(0)
+
+        assert len(events) == 2
+
+    def test_relationship_observer_all_events(self) -> None:
+        """Test RelationshipObserver receives add and remove events."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        events = []
+
+        class AllyTracker(RelationshipObserver):
+            edge_type = AllyTo
+
+            def on_relationship_added(self, source, edge, target):
+                events.append(("added", source.id, target.id, edge.trust_level))
+
+            def on_relationship_removed(self, source, edge, target):
+                events.append(("removed", source.id, target.id))
+
+        world.observe(AllyTracker())
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+        world.tick(0)
+
+        assert len(events) == 1
+        assert events[0] == ("added", p1.id, p2.id, 0.9)
+
+        p1.remove_relationship(AllyTo, p2.id)
+        world.tick(0)
+
+        assert len(events) == 2
+        assert events[1] == ("removed", p1.id, p2.id)
+
+    def test_component_observer_default_methods(self) -> None:
+        """Test that ComponentObserver default methods are no-ops."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        # Create observer that doesn't override any methods
+        class EmptyObserver(ComponentObserver):
+            component_type = Health
+
+        observer = EmptyObserver()
+        world.observe(observer)
+
+        player = world.spawn("player")
+        player.add_component(Health(current=100, maximum=100))
+        player.remove_component(Health)
+        world.tick(0)
+
+        # Should not raise any errors
+
+    def test_entity_observer_default_methods(self) -> None:
+        """Test that EntityObserver default methods are no-ops."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        class EmptyObserver(EntityObserver):
+            prefab = None
+
+        observer = EmptyObserver()
+        world.observe(observer)
+
+        player = world.spawn("player")
+        world.remove(player)
+        world.tick(0)
+
+        # Should not raise any errors
+
+    def test_relationship_observer_default_methods(self) -> None:
+        """Test that RelationshipObserver default methods are no-ops."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        class EmptyObserver(RelationshipObserver):
+            edge_type = AllyTo
+
+        observer = EmptyObserver()
+        world.observe(observer)
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+
+        p1.add_relationship(AllyTo(), p2.id)
+        p1.remove_relationship(AllyTo, p2.id)
+        world.tick(0)
+
+        # Should not raise any errors

@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type, TypeVar
+from typing import TYPE_CHECKING, List, Tuple, Type, TypeVar
 
 from relics.errors import (
     ComponentNotFoundError,
     DuplicateComponentError,
     EntityNotFoundError,
 )
-from relics.types import Component, EntityId
+from relics.types import Component, Edge, EntityId
 
 if TYPE_CHECKING:
     from relics.world import World
 
 T = TypeVar("T", bound=Component)
+E = TypeVar("E", bound=Edge)
 
 
 class Entity:
@@ -130,6 +131,107 @@ class Entity:
                 f"Entity {self._id} does not have component {component_type.__name__}"
             )
         self._world._remove_component(self._id, component_type)
+
+    def add_relationship(self, edge: Edge, target: "EntityId") -> None:
+        """Add a relationship from this entity to another.
+
+        Args:
+            edge: The edge instance defining the relationship.
+            target: The target entity ID.
+
+        Raises:
+            EntityNotFoundError: If this entity or target doesn't exist.
+            RelationshipValidationError: If edge validation fails.
+        """
+        self._validate_exists()
+        self._world._add_relationship(self._id, edge, target)
+
+    def remove_relationship(
+        self, edge_type: Type[Edge], target: "EntityId"
+    ) -> None:
+        """Remove a relationship from this entity to another.
+
+        Args:
+            edge_type: The type of edge to remove.
+            target: The target entity ID.
+
+        Raises:
+            EntityNotFoundError: If this entity doesn't exist.
+        """
+        self._validate_exists()
+        self._world._remove_relationship(self._id, edge_type, target)
+
+    def get_relationships(
+        self, edge_type: Type[E]
+    ) -> List[Tuple[E, "EntityId"]]:
+        """Get all outgoing relationships of the specified type.
+
+        Args:
+            edge_type: The type of edge to get.
+
+        Returns:
+            List of (edge, target_id) tuples.
+
+        Raises:
+            EntityNotFoundError: If this entity doesn't exist.
+        """
+        self._validate_exists()
+        return self._world._get_relationships(self._id, edge_type)  # type: ignore
+
+    def get_incoming_relationships(
+        self, edge_type: Type[E]
+    ) -> List[Tuple["EntityId", E]]:
+        """Get all incoming relationships of the specified type.
+
+        Args:
+            edge_type: The type of edge to get.
+
+        Returns:
+            List of (source_id, edge) tuples.
+
+        Raises:
+            EntityNotFoundError: If this entity doesn't exist.
+        """
+        self._validate_exists()
+        return self._world._get_incoming_relationships(  # type: ignore
+            self._id, edge_type
+        )
+
+    def has_relationship(
+        self, edge_type: Type[Edge], target: "EntityId | None" = None
+    ) -> bool:
+        """Check if this entity has an outgoing relationship.
+
+        Args:
+            edge_type: The type of edge to check.
+            target: Optional specific target to check for.
+
+        Returns:
+            True if the relationship exists.
+
+        Raises:
+            EntityNotFoundError: If this entity doesn't exist.
+        """
+        self._validate_exists()
+        return self._world._has_relationship(self._id, edge_type, target)
+
+    def has_incoming_relationship(
+        self, edge_type: Type[Edge], source: "EntityId | None" = None
+    ) -> bool:
+        """Check if this entity has an incoming relationship.
+
+        Args:
+            edge_type: The type of edge to check.
+            source: Optional specific source to check for.
+
+        Returns:
+            True if the relationship exists.
+
+        Raises:
+            EntityNotFoundError: If this entity doesn't exist.
+        """
+        self._validate_exists()
+        return self._world._has_incoming_relationship(self._id, edge_type, source)
 
     def __eq__(self, other: object) -> bool:
         """Check equality based on entity ID."""

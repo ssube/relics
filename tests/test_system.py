@@ -381,3 +381,161 @@ class TestSystemDependencies:
 
         # Init should be first
         assert execution_order[0] == "Init"
+
+
+class TestSubSystems:
+    """Tests for sub_systems feature."""
+
+    def test_sub_systems_default_empty(self) -> None:
+        """Test that sub_systems returns empty list by default."""
+
+        class TestSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
+            ) -> None:
+                pass
+
+        system = TestSystem()
+        assert system.sub_systems() == []
+
+    def test_sub_systems_execution(self) -> None:
+        """Test that sub_systems are executed after main process."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.register_prefab(
+            "enemy",
+            {Position: Position(x=10, y=10), Velocity: Velocity(x=-1, y=-1)},
+        )
+
+        execution_order: List[str] = []
+        player_count = [0]
+        enemy_count = [0]
+
+        class CombatSystem(System):
+            def query(self) -> QueryBuilder:
+                # Main query: entities with Position only (players)
+                return self.q.with_all([Position]).with_none([Velocity])
+
+            def process(
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
+            ) -> None:
+                execution_order.append("main")
+                player_count[0] = len(entities)
+
+            def sub_systems(self):
+                def process_enemies(
+                    entities: List[Entity],
+                    components: List[List[Component]],
+                    delta: float,
+                ) -> None:
+                    execution_order.append("sub")
+                    enemy_count[0] = len(entities)
+
+                # Sub-query: entities with Position AND Velocity (enemies)
+                return [(self.q.with_all([Position, Velocity]), process_enemies)]
+
+        world.spawn("player")
+        world.spawn("enemy")
+        world.register_system(CombatSystem())
+        world.tick(0.016)
+
+        assert execution_order == ["main", "sub"]
+        assert player_count[0] == 1
+        assert enemy_count[0] == 1
+
+    def test_sub_systems_with_iterate(self) -> None:
+        """Test that sub_systems receive components from iterate()."""
+        world = World()
+        world.register_prefab(
+            "moving",
+            {Position: Position(x=0, y=0), Velocity: Velocity(x=1, y=2)},
+        )
+
+        received_components: List[List[Component]] = []
+
+        class MovementSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q.with_all([Position])
+
+            def process(
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
+            ) -> None:
+                pass
+
+            def sub_systems(self):
+                def update_positions(
+                    entities: List[Entity],
+                    components: List[List[Component]],
+                    delta: float,
+                ) -> None:
+                    received_components.clear()
+                    received_components.extend(components)
+
+                return [(
+                    self.q.with_all([Position, Velocity]).iterate([Position, Velocity]),
+                    update_positions
+                )]
+
+        world.spawn("moving")
+        world.register_system(MovementSystem())
+        world.tick(0.016)
+
+        # Should have two component lists (Position and Velocity)
+        assert len(received_components) == 2
+        assert len(received_components[0]) == 1  # One Position
+        assert len(received_components[1]) == 1  # One Velocity
+        assert isinstance(received_components[0][0], Position)
+        assert isinstance(received_components[1][0], Velocity)
+
+    def test_multiple_sub_systems(self) -> None:
+        """Test multiple sub_systems execute in order."""
+        world = World()
+        world.register_prefab("entity", {Position: Position(x=0, y=0)})
+
+        execution_order: List[str] = []
+
+        class MultiSubSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
+            ) -> None:
+                execution_order.append("main")
+
+            def sub_systems(self):
+                def sub1(entities, components, delta):
+                    execution_order.append("sub1")
+
+                def sub2(entities, components, delta):
+                    execution_order.append("sub2")
+
+                def sub3(entities, components, delta):
+                    execution_order.append("sub3")
+
+                return [
+                    (self.q, sub1),
+                    (self.q, sub2),
+                    (self.q, sub3),
+                ]
+
+        world.spawn("entity")
+        world.register_system(MultiSubSystem())
+        world.tick(0.016)
+
+        assert execution_order == ["main", "sub1", "sub2", "sub3"]

@@ -35,3 +35,19 @@ class SystemDependencyCycleError(RelicError):
     """System dependencies form a cycle (fatal at registration)."""
 
     pass
+
+
+class RelationshipValidationError(RelicError):
+    """Relationship validation failed.
+
+    Raised when an Edge.validate() method returns False or raises
+    an exception during relationship creation.
+    """
+
+    pass
+
+
+class IndexNotFoundError(RelicError):
+    """Index does not exist in world."""
+
+    pass

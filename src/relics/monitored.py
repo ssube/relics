@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import fields
-from typing import TYPE_CHECKING, Any, Callable, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 if TYPE_CHECKING:
     from relics.types import EntityId
@@ -53,51 +53,6 @@ class MonitoredMixin:
             self._monitored_world._notify_component_changed(
                 self._monitored_entity_id, old_value, new_value_copy
             )
-
-
-def _create_monitored_setattr(original_class: Type[T]) -> Callable[[T, str, Any], None]:
-    """Create a __setattr__ method that tracks changes.
-
-    Args:
-        original_class: The original class being decorated.
-
-    Returns:
-        A __setattr__ method that notifies on changes.
-    """
-    # Get the field names from the dataclass
-    try:
-        field_names = {f.name for f in fields(original_class)}  # type: ignore
-    except TypeError:
-        # Not a dataclass yet, will be applied after
-        field_names = set()
-
-    def monitored_setattr(self: Any, name: str, value: Any) -> None:
-        """Set attribute and notify world if this is a monitored field."""
-        # Skip internal attributes
-        if name.startswith("_monitored") or name.startswith("__"):
-            object.__setattr__(self, name, value)
-            return
-
-        # Check if we should track this change
-        should_notify = (
-            hasattr(self, "_monitored_world")
-            and self._monitored_world is not None
-            and name in field_names
-        )
-
-        if should_notify:
-            # Capture old state
-            old_value = copy.copy(self)
-
-            # Set the new value
-            object.__setattr__(self, name, value)
-
-            # Notify of change
-            self._notify_change(old_value, self)
-        else:
-            object.__setattr__(self, name, value)
-
-    return monitored_setattr
 
 
 def monitored(cls: Type[T]) -> Type[T]:
