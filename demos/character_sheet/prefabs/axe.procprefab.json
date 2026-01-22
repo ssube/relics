@@ -1,0 +1,38 @@
+{
+  "name": "axe",
+  "params": [
+    {"name": "quality", "type": "str", "default": "common"}
+  ],
+  "graph": {
+    "components": [
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Steel Battle Axe",
+          "item_type": "weapon",
+          "material": "steel",
+          "quality": "@quality"
+        },
+        "when": {"quality": "rare"}
+      },
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Iron Hand Axe",
+          "item_type": "weapon",
+          "material": "iron",
+          "quality": "@quality"
+        }
+      },
+      {
+        "type": "WeaponStats",
+        "fields": {"damage": 14, "damage_type": "slashing", "two_handed": true},
+        "when": {"quality": "rare"}
+      },
+      {
+        "type": "WeaponStats",
+        "fields": {"damage": 10, "damage_type": "slashing", "two_handed": false}
+      }
+    ]
+  }
+}

@@ -28,7 +28,10 @@
       "Bash(python3 -m pytest:*)",
       "Bash(grep:*)",
       "Bash(wc:*)",
-      "Bash(.venv/bin/python -m pytest:*)"
+      "Bash(.venv/bin/python -m pytest:*)",
+      "Bash(find:*)",
+      "Bash(source:*)",
+      "Bash(python demos/character_sheet/main.py:*)"
     ]
   }
 }

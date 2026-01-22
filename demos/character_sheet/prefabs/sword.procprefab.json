@@ -1,0 +1,38 @@
+{
+  "name": "sword",
+  "params": [
+    {"name": "quality", "type": "str", "default": "common"}
+  ],
+  "graph": {
+    "components": [
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Steel Longsword",
+          "item_type": "weapon",
+          "material": "steel",
+          "quality": "@quality"
+        },
+        "when": {"quality": "rare"}
+      },
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Iron Sword",
+          "item_type": "weapon",
+          "material": "iron",
+          "quality": "@quality"
+        }
+      },
+      {
+        "type": "WeaponStats",
+        "fields": {"damage": 12, "damage_type": "slashing", "two_handed": false},
+        "when": {"quality": "rare"}
+      },
+      {
+        "type": "WeaponStats",
+        "fields": {"damage": 8, "damage_type": "slashing", "two_handed": false}
+      }
+    ]
+  }
+}

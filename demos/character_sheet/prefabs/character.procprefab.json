@@ -1,0 +1,96 @@
+{
+  "name": "character",
+  "params": [
+    {"name": "name", "type": "str", "required": true},
+    {"name": "title", "type": "str", "default": ""},
+    {"name": "race", "type": "str", "default": "human"},
+    {"name": "cls", "type": "str", "default": "warrior"}
+  ],
+  "graph": {
+    "components": [
+      {
+        "type": "Identity",
+        "fields": {"name": "@name", "title": "@title"}
+      },
+      {
+        "type": "CharacterClass",
+        "fields": {"race": "@race", "cls": "@cls"}
+      },
+      {
+        "type": "Appearance",
+        "fields": {"hair_color": "Red", "eye_color": "Brown", "height_cm": 127, "weight_kg": 75},
+        "when": {"race": "dwarf"}
+      },
+      {
+        "type": "Appearance",
+        "fields": {"hair_color": "Silver", "eye_color": "Blue", "height_cm": 175, "weight_kg": 60},
+        "when": {"race": "elf"}
+      },
+      {
+        "type": "Appearance",
+        "fields": {"hair_color": "Black", "eye_color": "Yellow", "height_cm": 195, "weight_kg": 110},
+        "when": {"race": "orc"}
+      },
+      {
+        "type": "Appearance",
+        "fields": {"hair_color": "Brown", "eye_color": "Green", "height_cm": 175, "weight_kg": 80}
+      }
+    ],
+    "conditionals": [
+      {
+        "when": {"cls": "warrior"},
+        "derive": [
+          {"target": "weapon_list", "operation": "set", "value": "weapons_warrior"},
+          {"target": "armor_list", "operation": "set", "value": "armor_warrior"},
+          {"target": "armor_class", "operation": "set", "value": "heavy"}
+        ]
+      },
+      {
+        "when": {"cls": "ranger"},
+        "derive": [
+          {"target": "weapon_list", "operation": "set", "value": "weapons_ranger"},
+          {"target": "armor_list", "operation": "set", "value": "armor_ranger"},
+          {"target": "armor_class", "operation": "set", "value": "medium"}
+        ]
+      },
+      {
+        "when": {"cls": "mage"},
+        "derive": [
+          {"target": "weapon_list", "operation": "set", "value": "weapons_mage"},
+          {"target": "armor_list", "operation": "set", "value": "armor_mage"},
+          {"target": "clothing_type", "operation": "set", "value": "robes"}
+        ]
+      },
+      {
+        "when": {"cls": "rogue"},
+        "derive": [
+          {"target": "weapon_list", "operation": "set", "value": "weapons_rogue"},
+          {"target": "armor_list", "operation": "set", "value": "armor_rogue"},
+          {"target": "armor_class", "operation": "set", "value": "light"}
+        ]
+      }
+    ],
+    "attachments": [
+      {
+        "from_list": "@weapon_list",
+        "edge_type": "HasEquipped",
+        "slot": "main_hand"
+      },
+      {
+        "from_list": "@armor_list",
+        "edge_type": "IsWearing",
+        "slot": "body"
+      }
+    ],
+    "lists": {
+      "weapons_warrior": ["sword", "axe"],
+      "weapons_ranger": ["bow", "sword"],
+      "weapons_mage": ["sword"],
+      "weapons_rogue": ["sword", "bow"],
+      "armor_warrior": ["armor"],
+      "armor_ranger": ["armor"],
+      "armor_mage": ["clothing"],
+      "armor_rogue": ["clothing"]
+    }
+  }
+}

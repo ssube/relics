@@ -1,0 +1,39 @@
+{
+  "name": "clothing",
+  "params": [
+    {"name": "quality", "type": "str", "default": "common"},
+    {"name": "clothing_type", "type": "str", "default": "robes"}
+  ],
+  "graph": {
+    "components": [
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Arcane Robes",
+          "item_type": "clothing",
+          "material": "silk",
+          "quality": "@quality"
+        },
+        "when": {"clothing_type": "robes"}
+      },
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Leather Vest",
+          "item_type": "clothing",
+          "material": "leather",
+          "quality": "@quality"
+        }
+      },
+      {
+        "type": "ArmorStats",
+        "fields": {"defense": 10, "armor_type": "light"},
+        "when": {"clothing_type": "robes"}
+      },
+      {
+        "type": "ArmorStats",
+        "fields": {"defense": 12, "armor_type": "light"}
+      }
+    ]
+  }
+}

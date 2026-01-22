@@ -1,0 +1,38 @@
+{
+  "name": "bow",
+  "params": [
+    {"name": "quality", "type": "str", "default": "common"}
+  ],
+  "graph": {
+    "components": [
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Yew Longbow",
+          "item_type": "weapon",
+          "material": "yew",
+          "quality": "@quality"
+        },
+        "when": {"quality": "rare"}
+      },
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Ash Shortbow",
+          "item_type": "weapon",
+          "material": "ash",
+          "quality": "@quality"
+        }
+      },
+      {
+        "type": "WeaponStats",
+        "fields": {"damage": 10, "damage_type": "piercing", "two_handed": true},
+        "when": {"quality": "rare"}
+      },
+      {
+        "type": "WeaponStats",
+        "fields": {"damage": 6, "damage_type": "piercing", "two_handed": true}
+      }
+    ]
+  }
+}

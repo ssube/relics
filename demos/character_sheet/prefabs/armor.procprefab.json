@@ -1,0 +1,54 @@
+{
+  "name": "armor",
+  "params": [
+    {"name": "quality", "type": "str", "default": "common"},
+    {"name": "armor_class", "type": "str", "default": "heavy"}
+  ],
+  "graph": {
+    "components": [
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Plate Armor",
+          "item_type": "armor",
+          "material": "steel",
+          "quality": "@quality"
+        },
+        "when": {"armor_class": "heavy"}
+      },
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Chain Mail",
+          "item_type": "armor",
+          "material": "iron",
+          "quality": "@quality"
+        },
+        "when": {"armor_class": "medium"}
+      },
+      {
+        "type": "Equipment",
+        "fields": {
+          "name": "Leather Armor",
+          "item_type": "armor",
+          "material": "leather",
+          "quality": "@quality"
+        }
+      },
+      {
+        "type": "ArmorStats",
+        "fields": {"defense": 18, "armor_type": "heavy"},
+        "when": {"armor_class": "heavy"}
+      },
+      {
+        "type": "ArmorStats",
+        "fields": {"defense": 14, "armor_type": "medium"},
+        "when": {"armor_class": "medium"}
+      },
+      {
+        "type": "ArmorStats",
+        "fields": {"defense": 11, "armor_type": "light"}
+      }
+    ]
+  }
+}
