@@ -174,9 +174,13 @@ class World:
             if overrides and comp_type in overrides:
                 components[comp_type] = overrides[comp_type]
             else:
-                # Deep copy would be ideal but for now use same instance
-                # This works because Pydantic dataclasses are immutable by default
-                components[comp_type] = comp_instance
+                # Deep copy monitored components since they need unique bindings
+                # per entity. Non-monitored components can share instances safely.
+                if hasattr(comp_instance, "_is_monitored") and comp_instance._is_monitored:
+                    import copy
+                    components[comp_type] = copy.copy(comp_instance)
+                else:
+                    components[comp_type] = comp_instance
 
         # Apply any additional overrides not in prefab
         if overrides:
@@ -193,11 +197,15 @@ class World:
             self._prefab_index[prefab] = set()
         self._prefab_index[prefab].add(entity_id)
 
-        # Update component index for all components
-        for comp_type in components:
+        # Update component index for all components and bind monitored components
+        for comp_type, comp_instance in components.items():
             if comp_type not in self._component_index:
                 self._component_index[comp_type] = set()
             self._component_index[comp_type].add(entity_id)
+
+            # Bind monitored components to this world for change tracking
+            if hasattr(comp_instance, "_bind_to_world"):
+                comp_instance._bind_to_world(self, entity_id)
 
         entity = Entity(self, entity_id)
 
@@ -296,6 +304,10 @@ class World:
         component_type = type(component)
         self._entities[entity_id][component_type] = component
         self.register_component_type(component_type)
+
+        # Bind monitored components to this world for change tracking
+        if hasattr(component, "_bind_to_world"):
+            component._bind_to_world(self, entity_id)
 
         # Update component index
         if component_type not in self._component_index:

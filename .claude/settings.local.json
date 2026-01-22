@@ -27,7 +27,8 @@
       "Bash(python -m pytest:*)",
       "Bash(python3 -m pytest:*)",
       "Bash(grep:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(.venv/bin/python -m pytest:*)"
     ]
   }
 }
