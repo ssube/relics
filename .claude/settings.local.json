@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/bin/pytest)",
+      "Bash(venv/bin/flake8:*)",
+      "Bash(venv/bin/black --check src/)",
+      "Bash(venv/bin/mypy:*)"
+    ]
+  }
+}
