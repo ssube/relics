@@ -31,6 +31,10 @@ where = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+markers = [
+    "perf: marks tests as performance tests (deselect with '-m \"not perf\"')",
+]
+addopts = "-m 'not perf'"
 
 [tool.black]
 line-length = 88
