@@ -62,10 +62,7 @@ class QuadTreeBounds:
         Returns:
             True if the point is within bounds.
         """
-        return (
-            self.min_x <= x <= self.max_x
-            and self.min_y <= y <= self.max_y
-        )
+        return self.min_x <= x <= self.max_x and self.min_y <= y <= self.max_y
 
     def intersects_region(self, region: SpatialRegion) -> bool:
         """Check if this bounds intersects a spatial region.
@@ -211,10 +208,7 @@ class QuadTreeNode:
         self.entities[entity_id] = (x, y)
 
         # Subdivide if we exceed capacity and haven't reached max depth
-        if (
-            len(self.entities) > self.max_entities
-            and self.depth < self.max_depth
-        ):
+        if len(self.entities) > self.max_entities and self.depth < self.max_depth:
             self._subdivide()
 
         return True

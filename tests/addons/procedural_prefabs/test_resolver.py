@@ -1,9 +1,7 @@
 """Tests for component resolution."""
 
-import pytest
 import pydantic.dataclasses
-
-from relics.types import Component
+import pytest
 
 from relics.addons.procedural_prefabs.context import GenerationContext
 from relics.addons.procedural_prefabs.prefab import (
@@ -23,6 +21,7 @@ from relics.addons.procedural_prefabs.resolver import (
     resolve_components,
     resolve_graph,
 )
+from relics.types import Component
 
 
 # Test components
@@ -377,7 +376,9 @@ class TestApplyConditionals:
             conditionals=[
                 ConditionalBlock(
                     when=WhenClause(conditions={"class": "warrior"}),
-                    add=[AddOperation(component_type="Armor", fields={"value": "@str"})],
+                    add=[
+                        AddOperation(component_type="Armor", fields={"value": "@str"})
+                    ],
                     derive=[DeriveOperation(target="str", operation="set", value=10)],
                 ),
             ],
@@ -443,7 +444,11 @@ class TestResolveGraph:
                 ConditionalBlock(
                     when=WhenClause(conditions={}),  # Always matches
                     add=[],
-                    derive=[DeriveOperation(target="bonus_damage", operation="set", value=10)],
+                    derive=[
+                        DeriveOperation(
+                            target="bonus_damage", operation="set", value=10
+                        )
+                    ],
                 ),
             ],
         )

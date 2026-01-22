@@ -185,12 +185,14 @@ class TestGenerationContextValueResolution:
     def test_resolve_nested(self) -> None:
         """Test resolving @params in nested structures."""
         ctx = GenerationContext(params={"x": 10})
-        result = ctx.resolve_value({
-            "outer": {
-                "inner": "@x",
-            },
-            "list": ["@x", "@x"],
-        })
+        result = ctx.resolve_value(
+            {
+                "outer": {
+                    "inner": "@x",
+                },
+                "list": ["@x", "@x"],
+            }
+        )
         assert result == {
             "outer": {"inner": 10},
             "list": [10, 10],

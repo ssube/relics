@@ -4,12 +4,10 @@ import json
 import os
 import tempfile
 
-import pytest
 import pydantic.dataclasses
+import pytest
 
 from relics import World
-from relics.types import Component
-
 from relics.addons.procedural_prefabs.exceptions import (
     PrefabListNotFoundError,
     ProcPrefabNotFoundError,
@@ -21,6 +19,7 @@ from relics.addons.procedural_prefabs.prefab import (
     ProceduralPrefab,
 )
 from relics.addons.procedural_prefabs.registry import ProceduralPrefabRegistry
+from relics.types import Component
 
 
 # Test components

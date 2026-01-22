@@ -103,6 +103,7 @@ class TestCreateSpatialIndex2D:
     def test_custom_component_type(self) -> None:
         """Test using a custom component type."""
         from pydantic.dataclasses import dataclass
+
         from relics import Component
         from relics.monitored import monitored
 
@@ -142,7 +143,9 @@ class TestCreateSpatialIndex2D:
 
         # Spawn many entities to trigger subdivision
         for i in range(20):
-            world.spawn("entity", {Position2D: Position2D(x=100 + i * 10, y=100 + i * 5)})
+            world.spawn(
+                "entity", {Position2D: Position2D(x=100 + i * 10, y=100 + i * 5)}
+            )
 
         world.tick(0)
         assert index.count() == 20

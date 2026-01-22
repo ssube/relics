@@ -8,29 +8,14 @@ from __future__ import annotations
 
 import heapq
 from abc import abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import TYPE_CHECKING, Callable, Iterator, List, Optional, Set, Tuple, Type
 
 from relics.entity import Entity
 from relics.index import IndexView
 from relics.types import Component, EntityId
 
 from .quadtree import QuadTree, QuadTreeBounds
-from .types import (
-    Circle,
-    Rectangle,
-    SpatialRegion,
-    distance_2d,
-    distance_squared_2d,
-)
+from .types import Circle, Rectangle, SpatialRegion, distance_2d, distance_squared_2d
 
 if TYPE_CHECKING:
     from relics.world import World
@@ -207,9 +192,7 @@ class LazySpatialIndex2D(SpatialIndexView2D):
         """
         self._world = world
         self._component_type = component_type
-        self._position_extractor = (
-            position_extractor or default_position_extractor_2d
-        )
+        self._position_extractor = position_extractor or default_position_extractor_2d
 
     def _get_entities_with_positions(
         self,
@@ -233,9 +216,7 @@ class LazySpatialIndex2D(SpatialIndexView2D):
     def count(self) -> int:
         """Count entities with the position component."""
         return sum(
-            1
-            for _ in self._world._entities.values()
-            if self._component_type in _
+            1 for _ in self._world._entities.values() if self._component_type in _
         )
 
     def get_entity_ids(self) -> Set[EntityId]:
@@ -330,9 +311,7 @@ class MaterializedSpatialIndex2D(SpatialIndexView2D):
         """
         self._world = world
         self._component_type = component_type
-        self._position_extractor = (
-            position_extractor or default_position_extractor_2d
-        )
+        self._position_extractor = position_extractor or default_position_extractor_2d
         self._quadtree = QuadTree(
             bounds=bounds,
             max_entities_per_node=max_entities_per_node,

@@ -2,13 +2,8 @@
 
 from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple, Type
 
+from relics.addons.procedural_prefabs.edges import HasAttached, HasEquipped, IsWearing
 from relics.types import Edge, EntityId
-
-from relics.addons.procedural_prefabs.edges import (
-    HasAttached,
-    HasEquipped,
-    IsWearing,
-)
 
 if TYPE_CHECKING:
     from relics.entity import Entity

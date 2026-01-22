@@ -5,7 +5,6 @@ import random
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
-from relics.types import Component
 from relics.addons.procedural_prefabs.exceptions import (
     PrefabListNotFoundError,
     ProcPrefabNotFoundError,
@@ -23,6 +22,7 @@ from relics.addons.procedural_prefabs.prefab import (
     WhenClause,
 )
 from relics.addons.procedural_prefabs.spawner import PrefabSpawner
+from relics.types import Component
 
 if TYPE_CHECKING:
     from relics.entity import Entity
@@ -253,13 +253,15 @@ class ProceduralPrefabRegistry:
         # Parse params
         params = []
         for p in data.get("params", []):
-            params.append(ParamDefinition(
-                name=p["name"],
-                param_type=p.get("type", "str"),
-                required=p.get("required", False),
-                default=p.get("default"),
-                allowed_values=p.get("allowed_values"),
-            ))
+            params.append(
+                ParamDefinition(
+                    name=p["name"],
+                    param_type=p.get("type", "str"),
+                    required=p.get("required", False),
+                    default=p.get("default"),
+                    allowed_values=p.get("allowed_values"),
+                )
+            )
 
         # Parse graph
         graph = self._parse_graph(data.get("graph", {}))
@@ -287,11 +289,13 @@ class ProceduralPrefabRegistry:
             if "when" in c:
                 when = WhenClause(conditions=c["when"])
 
-            components.append(ComponentVariant(
-                component_type=c["type"],
-                fields=c.get("fields", {}),
-                when=when,
-            ))
+            components.append(
+                ComponentVariant(
+                    component_type=c["type"],
+                    fields=c.get("fields", {}),
+                    when=when,
+                )
+            )
 
         # Parse conditionals
         conditionals = None
@@ -302,40 +306,48 @@ class ProceduralPrefabRegistry:
 
                 add_ops = []
                 for a in cond.get("add", []):
-                    add_ops.append(AddOperation(
-                        component_type=a["type"],
-                        fields=a.get("fields", {}),
-                    ))
+                    add_ops.append(
+                        AddOperation(
+                            component_type=a["type"],
+                            fields=a.get("fields", {}),
+                        )
+                    )
 
                 derive_ops = []
                 for d in cond.get("derive", []):
-                    derive_ops.append(DeriveOperation(
-                        target=d["target"],
-                        operation=d["operation"],
-                        value=d["value"],
-                    ))
+                    derive_ops.append(
+                        DeriveOperation(
+                            target=d["target"],
+                            operation=d["operation"],
+                            value=d["value"],
+                        )
+                    )
 
-                conditionals.append(ConditionalBlock(
-                    when=when,
-                    add=add_ops,
-                    derive=derive_ops,
-                ))
+                conditionals.append(
+                    ConditionalBlock(
+                        when=when,
+                        add=add_ops,
+                        derive=derive_ops,
+                    )
+                )
 
         # Parse attachments
         attachments = None
         if "attachments" in data:
             attachments = []
             for att in data["attachments"]:
-                attachments.append(AttachmentDefinition(
-                    prefab=att.get("prefab"),
-                    from_list=att.get("from_list"),
-                    edge_type=att.get("edge_type", "HasAttached"),
-                    slot=att.get("slot", "default"),
-                    inherit_params=att.get("inherit_params"),
-                    override_params=att.get("override_params"),
-                    optional=att.get("optional", False),
-                    skip=att.get("skip", False),
-                ))
+                attachments.append(
+                    AttachmentDefinition(
+                        prefab=att.get("prefab"),
+                        from_list=att.get("from_list"),
+                        edge_type=att.get("edge_type", "HasAttached"),
+                        slot=att.get("slot", "default"),
+                        inherit_params=att.get("inherit_params"),
+                        override_params=att.get("override_params"),
+                        optional=att.get("optional", False),
+                        skip=att.get("skip", False),
+                    )
+                )
 
         # Parse lists
         lists = data.get("lists")

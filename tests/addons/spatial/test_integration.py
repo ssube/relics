@@ -17,12 +17,14 @@ from relics.addons.spatial import (
 @dataclass
 class Enemy(Component):
     """Enemy marker component."""
+
     damage: float = 10.0
 
 
 @dataclass
 class Player(Component):
     """Player marker component."""
+
     health: float = 100.0
 
 
@@ -32,7 +34,9 @@ class TestBasicUsage:
     def test_basic_2d_workflow(self) -> None:
         """Test basic 2D spatial index workflow."""
         world = World()
-        world.register_prefab("enemy", {Position2D: Position2D(x=0, y=0), Enemy: Enemy()})
+        world.register_prefab(
+            "enemy", {Position2D: Position2D(x=0, y=0), Enemy: Enemy()}
+        )
 
         # Create index
         index = create_spatial_index_2d(
@@ -53,7 +57,9 @@ class TestBasicUsage:
     def test_basic_3d_workflow(self) -> None:
         """Test basic 3D spatial index workflow."""
         world = World()
-        world.register_prefab("enemy", {Position3D: Position3D(x=0, y=0, z=0), Enemy: Enemy()})
+        world.register_prefab(
+            "enemy", {Position3D: Position3D(x=0, y=0, z=0), Enemy: Enemy()}
+        )
 
         # Create index
         index = create_spatial_index_3d(
@@ -63,7 +69,9 @@ class TestBasicUsage:
 
         # Spawn enemies
         for i in range(10):
-            world.spawn("enemy", {Position3D: Position3D(x=i * 100, y=i * 100, z=i * 50)})
+            world.spawn(
+                "enemy", {Position3D: Position3D(x=i * 100, y=i * 100, z=i * 50)}
+            )
         world.tick(0)
 
         # Query nearby enemies
@@ -77,8 +85,12 @@ class TestQueryBuilderIntegration:
     def test_with_index_2d(self) -> None:
         """Test using spatial index with QueryBuilder.with_index()."""
         world = World()
-        world.register_prefab("enemy", {Position2D: Position2D(x=0, y=0), Enemy: Enemy()})
-        world.register_prefab("player", {Position2D: Position2D(x=0, y=0), Player: Player()})
+        world.register_prefab(
+            "enemy", {Position2D: Position2D(x=0, y=0), Enemy: Enemy()}
+        )
+        world.register_prefab(
+            "player", {Position2D: Position2D(x=0, y=0), Player: Player()}
+        )
 
         index = create_spatial_index_2d(
             world,
@@ -100,10 +112,7 @@ class TestQueryBuilderIntegration:
 
         # Combine with component query - get only nearby enemies
         nearby_enemies = list(
-            world.query()
-            .with_all([Enemy])
-            .with_index(index)
-            .execute_entities()
+            world.query().with_all([Enemy]).with_index(index).execute_entities()
         )
 
         # Should include all enemies that are in the index
@@ -112,7 +121,9 @@ class TestQueryBuilderIntegration:
     def test_spatial_filter_in_query(self) -> None:
         """Test using spatial query as a filter."""
         world = World()
-        world.register_prefab("enemy", {Position2D: Position2D(x=0, y=0), Enemy: Enemy()})
+        world.register_prefab(
+            "enemy", {Position2D: Position2D(x=0, y=0), Enemy: Enemy()}
+        )
 
         index = create_spatial_index_2d(
             world,
@@ -129,7 +140,8 @@ class TestQueryBuilderIntegration:
         nearby_ids = set(index.query_circle_ids(100, 100, 50))
 
         nearby_enemies = [
-            e for e in world.query().with_all([Enemy]).execute_entities()
+            e
+            for e in world.query().with_all([Enemy]).execute_entities()
             if e.id in nearby_ids
         ]
 
@@ -207,17 +219,22 @@ class TestDualIndexes:
 
         for i in range(5):
             # Low altitude ships (z = 0-100)
-            ship = world.spawn("ship", {Position3D: Position3D(x=i * 100, y=i * 100, z=50)})
+            ship = world.spawn(
+                "ship", {Position3D: Position3D(x=i * 100, y=i * 100, z=50)}
+            )
             low_ships.append(ship)
 
             # High altitude ships (z = 400-500)
-            ship = world.spawn("ship", {Position3D: Position3D(x=i * 100, y=i * 100, z=450)})
+            ship = world.spawn(
+                "ship", {Position3D: Position3D(x=i * 100, y=i * 100, z=450)}
+            )
             high_ships.append(ship)
 
         world.tick(0)
 
         # Query low layer (z centered at 50)
         from relics.addons.spatial import Box
+
         low_layer = Box(min_x=0, min_y=0, min_z=0, max_x=1000, max_y=1000, max_z=100)
         low_results = list(index.query_region(low_layer))
         assert len(low_results) == 5

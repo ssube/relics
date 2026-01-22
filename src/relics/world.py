@@ -99,9 +99,7 @@ class World:
 
         # Relationship storage (dict-based for O(1) removal)
         # Outgoing: source_id -> {edge_type -> {target_id -> edge}}
-        self._relationships: Dict[
-            EntityId, Dict[Type[Edge], Dict[EntityId, Edge]]
-        ] = {}
+        self._relationships: Dict[EntityId, Dict[Type[Edge], Dict[EntityId, Edge]]] = {}
         # Incoming index: target_id -> {edge_type -> {source_id -> edge}}
         self._incoming_relationships: Dict[
             EntityId, Dict[Type[Edge], Dict[EntityId, Edge]]
@@ -176,8 +174,12 @@ class World:
             else:
                 # Deep copy monitored components since they need unique bindings
                 # per entity. Non-monitored components can share instances safely.
-                if hasattr(comp_instance, "_is_monitored") and comp_instance._is_monitored:
+                if (
+                    hasattr(comp_instance, "_is_monitored")
+                    and comp_instance._is_monitored
+                ):
                     import copy
+
                     components[comp_type] = copy.copy(comp_instance)
                 else:
                     components[comp_type] = comp_instance

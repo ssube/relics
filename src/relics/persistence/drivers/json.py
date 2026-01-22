@@ -191,7 +191,9 @@ class JSONPersistenceDriver(PersistenceDriver):
             for entity_id_str, comp_fields in entities_components.items():
                 entity_id = EntityId.parse(entity_id_str)
                 if entity_id in world._entities:
-                    component = cast(Component, _dict_to_component(comp_type, comp_fields))
+                    component = cast(
+                        Component, _dict_to_component(comp_type, comp_fields)
+                    )
                     world._entities[entity_id][comp_type] = component
 
                     # Update component index
@@ -231,7 +233,9 @@ class JSONPersistenceDriver(PersistenceDriver):
                         world._incoming_relationships[target_id] = {}
                     if edge_type not in world._incoming_relationships[target_id]:
                         world._incoming_relationships[target_id][edge_type] = {}
-                    world._incoming_relationships[target_id][edge_type][source_id] = edge
+                    world._incoming_relationships[target_id][edge_type][
+                        source_id
+                    ] = edge
 
     def save_relic(
         self,

@@ -91,11 +91,7 @@ def find_all_matching_conditionals(
     Returns:
         List of all matching conditional blocks.
     """
-    return [
-        block
-        for block in conditionals
-        if matches_when_clause(block.when, context)
-    ]
+    return [block for block in conditionals if matches_when_clause(block.when, context)]
 
 
 def group_variants_by_type(

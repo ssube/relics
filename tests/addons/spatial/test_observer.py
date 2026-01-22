@@ -23,7 +23,9 @@ class TestSpatialIndexObserver2D:
         world = World()
         world.register_prefab("entity", {Position2D: Position2D(x=100, y=100)})
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         # Create and register observer
@@ -44,7 +46,9 @@ class TestSpatialIndexObserver2D:
         world = World()
         world.register_prefab("entity", {Position2D: Position2D(x=100, y=100)})
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         observer = create_spatial_observer_2d(index, Position2D)
@@ -65,7 +69,9 @@ class TestSpatialIndexObserver2D:
         world = World()
         world.register_prefab("entity", {Position2D: Position2D(x=100, y=100)})
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         observer = create_spatial_observer_2d(index, Position2D)
@@ -96,7 +102,9 @@ class TestSpatialIndexObserver2D:
         world = World()
         world.register_prefab("entity", {Position2D: Position2D(x=100, y=100)})
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         observer = create_spatial_observer_2d(index, Position2D)
@@ -105,7 +113,9 @@ class TestSpatialIndexObserver2D:
         # Spawn multiple entities
         entities = []
         for i in range(10):
-            e = world.spawn("entity", {Position2D: Position2D(x=100 + i * 10, y=100 + i * 10)})
+            e = world.spawn(
+                "entity", {Position2D: Position2D(x=100 + i * 10, y=100 + i * 10)}
+            )
             entities.append(e)
         world.tick(0)
 
@@ -122,7 +132,9 @@ class TestSpatialIndexObserver2D:
         """Test that observer's component_type is correctly set."""
         world = World()
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         observer = create_spatial_observer_2d(index, Position2D)
@@ -139,8 +151,12 @@ class TestSpatialIndexObserver3D:
         world.register_prefab("entity", {Position3D: Position3D(x=100, y=100, z=100)})
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
@@ -159,8 +175,12 @@ class TestSpatialIndexObserver3D:
         world.register_prefab("entity", {Position3D: Position3D(x=100, y=100, z=100)})
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
@@ -182,8 +202,12 @@ class TestSpatialIndexObserver3D:
         world.register_prefab("entity", {Position3D: Position3D(x=100, y=100, z=100)})
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
@@ -216,8 +240,12 @@ class TestSpatialIndexObserver3D:
         world = World()
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
@@ -235,7 +263,9 @@ class TestSpatialIndexObserver2DComponentBinding:
         # Create prefab WITHOUT Position2D
         world.register_prefab("entity_no_pos", {})
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         observer = create_spatial_observer_2d(index, Position2D)
@@ -268,8 +298,12 @@ class TestSpatialIndexObserver3DComponentBinding:
         world.register_prefab("entity_no_pos", {})
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 

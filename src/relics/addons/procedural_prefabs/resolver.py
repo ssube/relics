@@ -2,8 +2,6 @@
 
 from typing import Any, Dict, Type
 
-from relics.types import Component
-
 from relics.addons.procedural_prefabs.context import GenerationContext
 from relics.addons.procedural_prefabs.matcher import (
     find_all_matching_conditionals,
@@ -16,6 +14,7 @@ from relics.addons.procedural_prefabs.prefab import (
     DeriveOperation,
     GraphDefinition,
 )
+from relics.types import Component
 
 
 def resolve_component_fields(
@@ -31,10 +30,7 @@ def resolve_component_fields(
     Returns:
         Dictionary with all @param references resolved.
     """
-    return {
-        key: context.resolve_value(value)
-        for key, value in fields.items()
-    }
+    return {key: context.resolve_value(value) for key, value in fields.items()}
 
 
 def create_component_instance(

@@ -5,23 +5,22 @@ import os
 import random
 import tempfile
 
-import pytest
 import pydantic.dataclasses
+import pytest
 
 from relics import World
-from relics.types import Component
-
 from relics.addons.procedural_prefabs import (
-    ProceduralPrefabRegistry,
+    HasAttached,
     HasEquipped,
     IsWearing,
-    HasAttached,
+    ProceduralPrefabRegistry,
     create_cascade_observer,
+    destroy_with_children,
     get_children,
     get_holder,
     get_root,
-    destroy_with_children,
 )
+from relics.types import Component
 
 
 # Test components
@@ -76,7 +75,10 @@ class TestFullCharacterGeneration:
             "graph": {
                 "components": [
                     {"type": "Name", "fields": {"value": "Steel Sword"}},
-                    {"type": "Damage", "fields": {"value": 15, "damage_type": "slashing"}},
+                    {
+                        "type": "Damage",
+                        "fields": {"value": 15, "damage_type": "slashing"},
+                    },
                 ],
             },
         }
@@ -87,7 +89,10 @@ class TestFullCharacterGeneration:
             "graph": {
                 "components": [
                     {"type": "Name", "fields": {"value": "Battle Axe"}},
-                    {"type": "Damage", "fields": {"value": 20, "damage_type": "slashing"}},
+                    {
+                        "type": "Damage",
+                        "fields": {"value": 20, "damage_type": "slashing"},
+                    },
                 ],
             },
         }
@@ -168,10 +173,13 @@ class TestFullCharacterGeneration:
             registry.load_directory(tmpdir)
 
         # Spawn a dwarf warrior
-        character = registry.spawn("warrior", {
-            "name": "Gimli",
-            "race": "dwarf",
-        })
+        character = registry.spawn(
+            "warrior",
+            {
+                "name": "Gimli",
+                "race": "dwarf",
+            },
+        )
         world.tick(0)
 
         # Check character
@@ -370,13 +378,17 @@ class TestDeterministicGeneration:
                 sword_json = {
                     "name": "sword",
                     "params": [],
-                    "graph": {"components": [{"type": "Name", "fields": {"value": "Sword"}}]},
+                    "graph": {
+                        "components": [{"type": "Name", "fields": {"value": "Sword"}}]
+                    },
                 }
 
                 axe_json = {
                     "name": "axe",
                     "params": [],
-                    "graph": {"components": [{"type": "Name", "fields": {"value": "Axe"}}]},
+                    "graph": {
+                        "components": [{"type": "Name", "fields": {"value": "Axe"}}]
+                    },
                 }
 
                 character_json = {
@@ -385,7 +397,11 @@ class TestDeterministicGeneration:
                     "graph": {
                         "components": [],
                         "attachments": [
-                            {"from_list": "weapons", "edge_type": "HasEquipped", "slot": "hand"},
+                            {
+                                "from_list": "weapons",
+                                "edge_type": "HasEquipped",
+                                "slot": "hand",
+                            },
                         ],
                         "lists": {"weapons": ["sword", "axe"]},
                     },

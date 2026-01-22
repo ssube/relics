@@ -221,9 +221,7 @@ class InMemoryPersistenceDriver(PersistenceDriver):
                     if target_id not in world._entities:
                         continue
 
-                    edge = cast(
-                        Edge, _dict_to_component(edge_type, edge_info["edge"])
-                    )
+                    edge = cast(Edge, _dict_to_component(edge_type, edge_info["edge"]))
 
                     if source_id not in world._relationships:
                         world._relationships[source_id] = {}

@@ -12,8 +12,12 @@ class TestOctreeBounds:
     def test_create_bounds(self) -> None:
         """Test creating OctreeBounds."""
         bounds = OctreeBounds(
-            center_x=50, center_y=50, center_z=50,
-            half_width=50, half_height=50, half_depth=50
+            center_x=50,
+            center_y=50,
+            center_z=50,
+            half_width=50,
+            half_height=50,
+            half_depth=50,
         )
         assert bounds.center_x == 50
         assert bounds.center_y == 50
@@ -25,8 +29,12 @@ class TestOctreeBounds:
     def test_min_max_properties(self) -> None:
         """Test min/max coordinate properties."""
         bounds = OctreeBounds(
-            center_x=100, center_y=100, center_z=100,
-            half_width=50, half_height=30, half_depth=20
+            center_x=100,
+            center_y=100,
+            center_z=100,
+            half_width=50,
+            half_height=30,
+            half_depth=20,
         )
         assert bounds.min_x == 50
         assert bounds.max_x == 150
@@ -38,8 +46,12 @@ class TestOctreeBounds:
     def test_contains_point(self) -> None:
         """Test point containment."""
         bounds = OctreeBounds(
-            center_x=50, center_y=50, center_z=50,
-            half_width=50, half_height=50, half_depth=50
+            center_x=50,
+            center_y=50,
+            center_z=50,
+            half_width=50,
+            half_height=50,
+            half_depth=50,
         )
         assert bounds.contains_point(50, 50, 50)
         assert bounds.contains_point(0, 0, 0)
@@ -52,8 +64,12 @@ class TestOctreeBounds:
     def test_get_octant(self) -> None:
         """Test octant determination."""
         bounds = OctreeBounds(
-            center_x=50, center_y=50, center_z=50,
-            half_width=50, half_height=50, half_depth=50
+            center_x=50,
+            center_y=50,
+            center_z=50,
+            half_width=50,
+            half_height=50,
+            half_depth=50,
         )
         # Octant numbering based on (X>center, Y>center, Z>center)
         # 0: ---, 1: +--, 2: -+-, 3: ++-, 4: --+, 5: +-+, 6: -++, 7: +++
@@ -69,8 +85,12 @@ class TestOctreeBounds:
     def test_subdivide(self) -> None:
         """Test bounds subdivision."""
         bounds = OctreeBounds(
-            center_x=100, center_y=100, center_z=100,
-            half_width=100, half_height=100, half_depth=100
+            center_x=100,
+            center_y=100,
+            center_z=100,
+            half_width=100,
+            half_height=100,
+            half_depth=100,
         )
         children = bounds.subdivide()
 
@@ -85,8 +105,12 @@ class TestOctreeBounds:
     def test_intersects_region_sphere(self) -> None:
         """Test intersection with sphere region."""
         bounds = OctreeBounds(
-            center_x=50, center_y=50, center_z=50,
-            half_width=50, half_height=50, half_depth=50
+            center_x=50,
+            center_y=50,
+            center_z=50,
+            half_width=50,
+            half_height=50,
+            half_depth=50,
         )
         sphere_inside = Sphere(center_x=50, center_y=50, center_z=50, radius=10)
         sphere_outside = Sphere(center_x=200, center_y=200, center_z=200, radius=10)
@@ -101,8 +125,12 @@ class TestOctree:
     def test_create_octree(self) -> None:
         """Test creating an Octree."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
         assert tree.count() == 0
@@ -110,8 +138,12 @@ class TestOctree:
     def test_insert_entity(self) -> None:
         """Test inserting an entity."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -123,8 +155,12 @@ class TestOctree:
     def test_insert_out_of_bounds(self) -> None:
         """Test inserting entity outside bounds."""
         bounds = OctreeBounds(
-            center_x=50, center_y=50, center_z=50,
-            half_width=50, half_height=50, half_depth=50
+            center_x=50,
+            center_y=50,
+            center_z=50,
+            half_width=50,
+            half_height=50,
+            half_depth=50,
         )
         tree = Octree(bounds)
 
@@ -135,8 +171,12 @@ class TestOctree:
     def test_remove_entity(self) -> None:
         """Test removing an entity."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -151,8 +191,12 @@ class TestOctree:
     def test_update_entity(self) -> None:
         """Test updating entity position."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -168,8 +212,12 @@ class TestOctree:
     def test_query_sphere(self) -> None:
         """Test sphere query."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -193,8 +241,12 @@ class TestOctree:
     def test_query_box(self) -> None:
         """Test box query."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -217,8 +269,12 @@ class TestOctree:
     def test_query_all(self) -> None:
         """Test getting all entities."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -238,16 +294,17 @@ class TestOctree:
     def test_clear(self) -> None:
         """Test clearing the tree."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
         for i in range(10):
-            tree.insert(
-                EntityId(prefab="test", sequence=i),
-                i * 50, i * 50, i * 50
-            )
+            tree.insert(EntityId(prefab="test", sequence=i), i * 50, i * 50, i * 50)
 
         assert tree.count() == 10
         tree.clear()
@@ -256,8 +313,12 @@ class TestOctree:
     def test_subdivision(self) -> None:
         """Test that tree subdivides when capacity exceeded."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds, max_entities_per_node=4, max_depth=4)
 
@@ -265,7 +326,9 @@ class TestOctree:
         for i in range(10):
             tree.insert(
                 EntityId(prefab="test", sequence=i),
-                100 + i * 10, 100 + i * 10, 100 + i * 10
+                100 + i * 10,
+                100 + i * 10,
+                100 + i * 10,
             )
 
         assert tree.count() == 10
@@ -278,8 +341,12 @@ class TestOctree:
     def test_bounds_property(self) -> None:
         """Test accessing bounds property."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -289,8 +356,12 @@ class TestOctree:
     def test_remove_nonexistent_entity(self) -> None:
         """Test removing an entity that doesn't exist returns False."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -301,8 +372,12 @@ class TestOctree:
     def test_remove_from_subdivided_tree(self) -> None:
         """Test removing entities from a tree that has subdivided."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Low capacity to force subdivision
         tree = Octree(bounds, max_entities_per_node=2, max_depth=4)
@@ -325,8 +400,12 @@ class TestOctree:
     def test_query_all_from_subdivided_tree(self) -> None:
         """Test query_all returns entities from all child nodes."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Low capacity to force subdivision
         tree = Octree(bounds, max_entities_per_node=2, max_depth=4)
@@ -359,8 +438,12 @@ class TestOctree:
     def test_count_from_subdivided_tree(self) -> None:
         """Test count returns correct count from subdivided tree."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Low capacity to force subdivision
         tree = Octree(bounds, max_entities_per_node=2, max_depth=4)
@@ -376,8 +459,12 @@ class TestOctree:
     def test_get_position_nonexistent(self) -> None:
         """Test get_position returns None for nonexistent entity."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -387,8 +474,12 @@ class TestOctree:
     def test_get_entity_ids(self) -> None:
         """Test get_entity_ids returns all entity IDs."""
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         tree = Octree(bounds)
 
@@ -412,15 +503,24 @@ class TestOctreeNodeDirectly:
         from relics.addons.spatial.octree import OctreeNode
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Very low capacity to force subdivision
         node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
 
         # Insert entities to trigger subdivision
         for i in range(4):
-            node.insert(EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200, 100 + i * 200)
+            node.insert(
+                EntityId(prefab="test", sequence=i),
+                100 + i * 200,
+                100 + i * 200,
+                100 + i * 200,
+            )
 
         # Verify children were created
         assert node.children is not None
@@ -433,8 +533,12 @@ class TestOctreeNodeDirectly:
         from relics.addons.spatial.octree import OctreeNode
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Very low capacity to force subdivision
         node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
@@ -461,8 +565,12 @@ class TestOctreeNodeDirectly:
         from relics.addons.spatial.octree import OctreeNode
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Very low capacity to force subdivision
         node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
@@ -487,15 +595,24 @@ class TestOctreeNodeDirectly:
         from relics.addons.spatial.octree import OctreeNode
 
         bounds = OctreeBounds(
-            center_x=500, center_y=500, center_z=500,
-            half_width=500, half_height=500, half_depth=500
+            center_x=500,
+            center_y=500,
+            center_z=500,
+            half_width=500,
+            half_height=500,
+            half_depth=500,
         )
         # Very low capacity to force subdivision
         node = OctreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
 
         # Insert to trigger subdivision
         for i in range(4):
-            node.insert(EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200, 100 + i * 200)
+            node.insert(
+                EntityId(prefab="test", sequence=i),
+                100 + i * 200,
+                100 + i * 200,
+                100 + i * 200,
+            )
 
         assert node.children is not None
         old_children = node.children

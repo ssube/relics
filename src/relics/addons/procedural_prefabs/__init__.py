@@ -42,14 +42,42 @@ Example:
     ...     print(f"Equipped: {equipped.id}")
 """
 
+# Context
+from relics.addons.procedural_prefabs.context import GenerationContext
+
+# Edge types
+from relics.addons.procedural_prefabs.edges import (
+    EDGE_TYPE_MAP,
+    HasAttached,
+    HasEquipped,
+    IsWearing,
+    create_edge,
+    get_edge_class,
+    register_edge_type,
+)
+
 # Exceptions
 from relics.addons.procedural_prefabs.exceptions import (
     AttachmentSelectionError,
     CyclicAttachmentError,
     ParamValidationError,
     PrefabListNotFoundError,
-    ProcPrefabNotFoundError,
     ProceduralPrefabError,
+    ProcPrefabNotFoundError,
+)
+
+# Matching
+from relics.addons.procedural_prefabs.matcher import (
+    find_all_matching_conditionals,
+    find_matching_variant,
+    group_variants_by_type,
+    matches_when_clause,
+)
+
+# Observer
+from relics.addons.procedural_prefabs.observer import (
+    DestroyChildrenObserver,
+    create_cascade_observer,
 )
 
 # Core data classes
@@ -66,16 +94,8 @@ from relics.addons.procedural_prefabs.prefab import (
     WhenClause,
 )
 
-# Context
-from relics.addons.procedural_prefabs.context import GenerationContext
-
-# Matching
-from relics.addons.procedural_prefabs.matcher import (
-    find_all_matching_conditionals,
-    find_matching_variant,
-    group_variants_by_type,
-    matches_when_clause,
-)
+# Registry
+from relics.addons.procedural_prefabs.registry import ProceduralPrefabRegistry
 
 # Resolution
 from relics.addons.procedural_prefabs.resolver import (
@@ -88,28 +108,14 @@ from relics.addons.procedural_prefabs.resolver import (
     resolve_graph,
 )
 
-# Edge types
-from relics.addons.procedural_prefabs.edges import (
-    EDGE_TYPE_MAP,
-    HasAttached,
-    HasEquipped,
-    IsWearing,
-    create_edge,
-    get_edge_class,
-    register_edge_type,
-)
-
 # Spawner
 from relics.addons.procedural_prefabs.spawner import PrefabSpawner
-
-# Registry
-from relics.addons.procedural_prefabs.registry import ProceduralPrefabRegistry
 
 # Utilities
 from relics.addons.procedural_prefabs.utils import (
     DEFAULT_EDGE_TYPES,
-    detach,
     destroy_with_children,
+    detach,
     get_all_children_ids,
     get_child_ids,
     get_children,
@@ -118,12 +124,6 @@ from relics.addons.procedural_prefabs.utils import (
     get_holder_id,
     get_root,
     get_slot,
-)
-
-# Observer
-from relics.addons.procedural_prefabs.observer import (
-    DestroyChildrenObserver,
-    create_cascade_observer,
 )
 
 __all__ = [

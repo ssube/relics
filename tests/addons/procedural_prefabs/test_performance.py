@@ -6,19 +6,18 @@ import random
 import tempfile
 import time
 
-import pytest
 import pydantic.dataclasses
+import pytest
 
 from relics import World
-from relics.types import Component
-
 from relics.addons.procedural_prefabs import (
-    ProceduralPrefabRegistry,
     HasEquipped,
+    ProceduralPrefabRegistry,
     create_cascade_observer,
-    get_children,
     destroy_with_children,
+    get_children,
 )
+from relics.types import Component
 
 
 # Test components
@@ -101,7 +100,10 @@ class TestSpawnPerformance:
                 ],
                 "graph": {
                     "components": [
-                        {"type": "Health", "fields": {"current": "@hp", "maximum": "@hp"}},
+                        {
+                            "type": "Health",
+                            "fields": {"current": "@hp", "maximum": "@hp"},
+                        },
                         {"type": "Name", "fields": {"value": "@name"}},
                     ],
                 },
@@ -117,10 +119,13 @@ class TestSpawnPerformance:
         start = time.perf_counter()
 
         for i in range(count):
-            registry.spawn("parameterized", {
-                "hp": 100 + i,
-                "name": f"Entity_{i}",
-            })
+            registry.spawn(
+                "parameterized",
+                {
+                    "hp": 100 + i,
+                    "name": f"Entity_{i}",
+                },
+            )
 
         elapsed = (time.perf_counter() - start) * 1000
 
@@ -168,8 +173,16 @@ class TestSpawnPerformance:
                         {"type": "Health", "fields": {"current": 100, "maximum": 100}},
                     ],
                     "attachments": [
-                        {"prefab": "weapon", "edge_type": "HasEquipped", "slot": "hand"},
-                        {"prefab": "armor", "edge_type": "HasEquipped", "slot": "chest"},
+                        {
+                            "prefab": "weapon",
+                            "edge_type": "HasEquipped",
+                            "slot": "hand",
+                        },
+                        {
+                            "prefab": "armor",
+                            "edge_type": "HasEquipped",
+                            "slot": "chest",
+                        },
                     ],
                 },
             }
@@ -305,7 +318,11 @@ class TestListSelectionPerformance:
                 "graph": {
                     "components": [],
                     "attachments": [
-                        {"from_list": "weapons", "edge_type": "HasEquipped", "slot": "hand"},
+                        {
+                            "from_list": "weapons",
+                            "edge_type": "HasEquipped",
+                            "slot": "hand",
+                        },
                     ],
                     "lists": {"weapons": weapon_names},
                 },
@@ -356,7 +373,11 @@ class TestCascadeDeletionPerformance:
                 }
                 if i < 3:
                     prefab["graph"]["attachments"] = [
-                        {"prefab": f"level_{i+1}", "edge_type": "HasEquipped", "slot": "child"},
+                        {
+                            "prefab": f"level_{i+1}",
+                            "edge_type": "HasEquipped",
+                            "slot": "child",
+                        },
                     ]
 
                 path = os.path.join(tmpdir, f"level_{i}.procprefab.json")
@@ -437,7 +458,9 @@ class TestQueryPerformance:
 
         elapsed = (time.perf_counter() - start) * 1000
 
-        print(f"\nGet {num_children} children x {iterations} iterations: {elapsed:.3f}ms")
+        print(
+            f"\nGet {num_children} children x {iterations} iterations: {elapsed:.3f}ms"
+        )
         print(f"Average per query: {elapsed/iterations:.3f}ms")
 
         assert elapsed < 5000, f"Querying children took {elapsed:.3f}ms"

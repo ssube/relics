@@ -123,8 +123,14 @@ class OctreeBounds:
         return octant
 
     def subdivide(self) -> Tuple[
-        "OctreeBounds", "OctreeBounds", "OctreeBounds", "OctreeBounds",
-        "OctreeBounds", "OctreeBounds", "OctreeBounds", "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
+        "OctreeBounds",
     ]:
         """Create eight child bounds by subdividing this bounds.
 
@@ -142,14 +148,16 @@ class OctreeBounds:
             dy = half_h if (octant & 2) else -half_h
             dz = half_d if (octant & 4) else -half_d
 
-            children.append(OctreeBounds(
-                self.center_x + dx,
-                self.center_y + dy,
-                self.center_z + dz,
-                half_w,
-                half_h,
-                half_d,
-            ))
+            children.append(
+                OctreeBounds(
+                    self.center_x + dx,
+                    self.center_y + dy,
+                    self.center_z + dz,
+                    half_w,
+                    half_h,
+                    half_d,
+                )
+            )
 
         return tuple(children)  # type: ignore
 
@@ -222,10 +230,7 @@ class OctreeNode:
         self.entities[entity_id] = (x, y, z)
 
         # Subdivide if we exceed capacity and haven't reached max depth
-        if (
-            len(self.entities) > self.max_entities
-            and self.depth < self.max_depth
-        ):
+        if len(self.entities) > self.max_entities and self.depth < self.max_depth:
             self._subdivide()
 
         return True

@@ -124,7 +124,9 @@ def load_relic(
     Raises:
         FileNotFoundError: If the relic doesn't exist.
     """
-    _default_driver.load_relic(world, name, relics_dir, component_registry, edge_registry)
+    _default_driver.load_relic(
+        world, name, relics_dir, component_registry, edge_registry
+    )
 
 
 def list_relics(relics_dir: str | Path) -> List[RelicInfo]:

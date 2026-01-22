@@ -7,15 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic.dataclasses import dataclass
 
-from relics import (
-    Component,
-    World,
-    list_relics,
-    load,
-    load_relic,
-    save,
-    save_relic,
-)
+from relics import Component, World, list_relics, load, load_relic, save, save_relic
 
 
 @dataclass

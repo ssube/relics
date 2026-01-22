@@ -156,8 +156,7 @@ class PrefabSpawner:
                 # Check required
                 if param_def.required:
                     raise ParamValidationError(
-                        param_def.name,
-                        "Required parameter not provided"
+                        param_def.name, "Required parameter not provided"
                     )
 
                 # Apply default
@@ -219,8 +218,7 @@ class PrefabSpawner:
             if attachment.optional:
                 return None
             raise AttachmentSelectionError(
-                attachment.slot,
-                "No prefab resolved and attachment is not optional"
+                attachment.slot, "No prefab resolved and attachment is not optional"
             )
 
         # Create child context

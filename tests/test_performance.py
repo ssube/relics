@@ -19,18 +19,17 @@ from relics.system import Frequency, System
 
 from .conftest import (
     AI,
+    PERF_SCALE_IDS,
+    PERF_SCALES,
     AllyTo,
     Health,
     Inventory,
     ParentOf,
-    PERF_SCALE_IDS,
-    PERF_SCALES,
     Position,
     Targets,
     Velocity,
     register_standard_prefabs,
 )
-
 
 # =============================================================================
 # Performance Measurement Utilities
@@ -345,9 +344,7 @@ class TestComponentAccessPerformance:
 
         elapsed = measure_time(get_component, iterations)
 
-        result = PerfResult(
-            f"get_component (n={scale})", scale, iterations, elapsed
-        )
+        result = PerfResult(f"get_component (n={scale})", scale, iterations, elapsed)
         result.print_report()
         print("EXPECTED: ~constant time (O(1) dict lookup)")
 
@@ -366,9 +363,7 @@ class TestComponentAccessPerformance:
 
         elapsed = measure_time(has_component, iterations)
 
-        result = PerfResult(
-            f"has_component (n={scale})", scale, iterations, elapsed
-        )
+        result = PerfResult(f"has_component (n={scale})", scale, iterations, elapsed)
         result.print_report()
 
     @pytest.mark.parametrize("scale", PERF_SCALES[:2], ids=PERF_SCALE_IDS[:2])
@@ -979,7 +974,9 @@ class TestScalingAnalysis:
         print("=" * 70)
         print("SCALING ANALYSIS SUMMARY")
         print("=" * 70)
-        print(f"{'Scale':>12} | {'Spawn (ms/ent)':>14} | {'Query (ms/op)':>14} | {'Access (ms/op)':>14}")
+        print(
+            f"{'Scale':>12} | {'Spawn (ms/ent)':>14} | {'Query (ms/op)':>14} | {'Access (ms/op)':>14}"
+        )
         print("-" * 70)
 
         for scale in scales:
@@ -1002,7 +999,9 @@ class TestScalingAnalysis:
             scale_factor = scales[1] / scales[0]
             query_growth = results["query"][scales[1]] / results["query"][scales[0]]
             print(f"\nScale increased {scale_factor:.0f}x:")
-            print(f"  - Query time growth: {query_growth:.1f}x (expected ~{scale_factor:.0f}x for O(n))")
+            print(
+                f"  - Query time growth: {query_growth:.1f}x (expected ~{scale_factor:.0f}x for O(n))"
+            )
 
 
 # =============================================================================

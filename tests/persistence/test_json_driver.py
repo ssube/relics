@@ -103,9 +103,7 @@ class TestJSONPersistenceDriver:
             driver.save(world, temp_path)
 
             world2 = World()
-            driver.load(
-                world2, temp_path, {"Position": Position}, {"AllyTo": AllyTo}
-            )
+            driver.load(world2, temp_path, {"Position": Position}, {"AllyTo": AllyTo})
 
             loaded_p1 = world2.get_entity(p1.id)
             assert loaded_p1.has_relationship(AllyTo, p2.id)

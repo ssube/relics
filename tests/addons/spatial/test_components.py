@@ -23,6 +23,7 @@ class TestPosition2D:
         """Test Position2D requires explicit values."""
         # Position2D doesn't have defaults, so this should fail with validation error
         import pydantic
+
         with pytest.raises(pydantic.ValidationError):
             Position2D()  # type: ignore
 
@@ -72,8 +73,12 @@ class TestAABB:
     def test_create_aabb(self) -> None:
         """Test creating an AABB component."""
         aabb = AABB(
-            center_x=50, center_y=50, center_z=50,
-            half_width=25, half_height=15, half_depth=10
+            center_x=50,
+            center_y=50,
+            center_z=50,
+            half_width=25,
+            half_height=15,
+            half_depth=10,
         )
         assert aabb.center_x == 50
         assert aabb.center_y == 50
@@ -85,8 +90,12 @@ class TestAABB:
     def test_aabb_min_max_properties(self) -> None:
         """Test AABB min/max coordinate properties."""
         aabb = AABB(
-            center_x=100, center_y=200, center_z=300,
-            half_width=50, half_height=30, half_depth=20
+            center_x=100,
+            center_y=200,
+            center_z=300,
+            half_width=50,
+            half_height=30,
+            half_depth=20,
         )
         assert aabb.min_x == 50
         assert aabb.max_x == 150

@@ -2,12 +2,10 @@
 
 import random
 
-import pytest
 import pydantic.dataclasses
+import pytest
 
 from relics import World
-from relics.types import Component
-
 from relics.addons.procedural_prefabs.context import GenerationContext
 from relics.addons.procedural_prefabs.edges import HasAttached, HasEquipped
 from relics.addons.procedural_prefabs.exceptions import (
@@ -25,6 +23,7 @@ from relics.addons.procedural_prefabs.prefab import (
     ProceduralPrefab,
 )
 from relics.addons.procedural_prefabs.spawner import PrefabSpawner
+from relics.types import Component
 
 
 # Test components
@@ -849,7 +848,9 @@ class TestPrefabSpawnerDeterminism:
             name="sword",
             params=[],
             graph=GraphDefinition(
-                components=[ComponentVariant(component_type="Name", fields={"value": "sword"})],
+                components=[
+                    ComponentVariant(component_type="Name", fields={"value": "sword"})
+                ],
             ),
         )
 
@@ -857,7 +858,9 @@ class TestPrefabSpawnerDeterminism:
             name="axe",
             params=[],
             graph=GraphDefinition(
-                components=[ComponentVariant(component_type="Name", fields={"value": "axe"})],
+                components=[
+                    ComponentVariant(component_type="Name", fields={"value": "axe"})
+                ],
             ),
         )
 

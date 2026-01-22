@@ -475,10 +475,7 @@ class TestIndexQueryIntegration:
 
         # Query all with position, but excluding alive index (only dead)
         result = list(
-            world.query()
-            .with_all([Position])
-            .without_index(alive_index)
-            .execute_ids()
+            world.query().with_all([Position]).without_index(alive_index).execute_ids()
         )
 
         assert len(result) == 1
@@ -685,10 +682,7 @@ class TestIndexQueryIntegration:
 
         # Query with_all Position but exclude all positioned entities
         result = list(
-            world.query()
-            .with_all([Position])
-            .without_index(all_index)
-            .execute_ids()
+            world.query().with_all([Position]).without_index(all_index).execute_ids()
         )
 
         assert len(result) == 0
@@ -710,10 +704,7 @@ class TestIndexQueryIntegration:
         # Query: with_all Position AND with_index healthy
         # No entity has both Position AND is in healthy index
         result = list(
-            world.query()
-            .with_all([Position])
-            .with_index(health_index)
-            .execute_ids()
+            world.query().with_all([Position]).with_index(health_index).execute_ids()
         )
 
         assert len(result) == 0

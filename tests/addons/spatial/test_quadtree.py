@@ -19,7 +19,9 @@ class TestQuadTreeBounds:
 
     def test_min_max_properties(self) -> None:
         """Test min/max coordinate properties."""
-        bounds = QuadTreeBounds(center_x=100, center_y=100, half_width=50, half_height=30)
+        bounds = QuadTreeBounds(
+            center_x=100, center_y=100, half_width=50, half_height=30
+        )
         assert bounds.min_x == 50
         assert bounds.max_x == 150
         assert bounds.min_y == 70
@@ -48,7 +50,9 @@ class TestQuadTreeBounds:
 
     def test_subdivide(self) -> None:
         """Test bounds subdivision."""
-        bounds = QuadTreeBounds(center_x=100, center_y=100, half_width=100, half_height=100)
+        bounds = QuadTreeBounds(
+            center_x=100, center_y=100, half_width=100, half_height=100
+        )
         nw, ne, sw, se = bounds.subdivide()
 
         # Check NW quadrant
@@ -84,13 +88,17 @@ class TestQuadTree:
 
     def test_create_quadtree(self) -> None:
         """Test creating a QuadTree."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
         assert tree.count() == 0
 
     def test_insert_entity(self) -> None:
         """Test inserting an entity."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         entity_id = EntityId(prefab="test", sequence=1)
@@ -109,7 +117,9 @@ class TestQuadTree:
 
     def test_remove_entity(self) -> None:
         """Test removing an entity."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         entity_id = EntityId(prefab="test", sequence=1)
@@ -122,7 +132,9 @@ class TestQuadTree:
 
     def test_remove_nonexistent(self) -> None:
         """Test removing entity that doesn't exist."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         entity_id = EntityId(prefab="test", sequence=1)
@@ -130,7 +142,9 @@ class TestQuadTree:
 
     def test_update_entity(self) -> None:
         """Test updating entity position."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         entity_id = EntityId(prefab="test", sequence=1)
@@ -144,7 +158,9 @@ class TestQuadTree:
 
     def test_query_circle(self) -> None:
         """Test circle query."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         # Insert entities at known positions
@@ -166,7 +182,9 @@ class TestQuadTree:
 
     def test_query_rectangle(self) -> None:
         """Test rectangle query."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         e1 = EntityId(prefab="test", sequence=1)
@@ -187,7 +205,9 @@ class TestQuadTree:
 
     def test_query_all(self) -> None:
         """Test getting all entities."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         e1 = EntityId(prefab="test", sequence=1)
@@ -205,7 +225,9 @@ class TestQuadTree:
 
     def test_get_entity_ids(self) -> None:
         """Test getting all entity IDs."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         e1 = EntityId(prefab="test", sequence=1)
@@ -221,7 +243,9 @@ class TestQuadTree:
 
     def test_clear(self) -> None:
         """Test clearing the tree."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         for i in range(10):
@@ -233,7 +257,9 @@ class TestQuadTree:
 
     def test_subdivision(self) -> None:
         """Test that tree subdivides when capacity exceeded."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds, max_entities_per_node=4, max_depth=4)
 
         # Insert more than max_entities_per_node entities
@@ -249,7 +275,9 @@ class TestQuadTree:
 
     def test_insert_updates_existing(self) -> None:
         """Test that inserting existing entity updates its position."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         entity_id = EntityId(prefab="test", sequence=1)
@@ -261,7 +289,9 @@ class TestQuadTree:
 
     def test_bounds_property(self) -> None:
         """Test accessing bounds property."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         assert tree.bounds == bounds
@@ -269,7 +299,9 @@ class TestQuadTree:
 
     def test_remove_from_subdivided_tree(self) -> None:
         """Test removing entities from a tree that has subdivided."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Low capacity to force subdivision
         tree = QuadTree(bounds, max_entities_per_node=2, max_depth=4)
 
@@ -290,7 +322,9 @@ class TestQuadTree:
 
     def test_query_all_from_subdivided_tree(self) -> None:
         """Test query_all returns entities from all child nodes."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Low capacity to force subdivision
         tree = QuadTree(bounds, max_entities_per_node=2, max_depth=4)
 
@@ -321,7 +355,9 @@ class TestQuadTree:
 
     def test_count_from_subdivided_tree(self) -> None:
         """Test count returns correct count from subdivided tree."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Low capacity to force subdivision
         tree = QuadTree(bounds, max_entities_per_node=2, max_depth=4)
 
@@ -335,7 +371,9 @@ class TestQuadTree:
 
     def test_get_position_nonexistent(self) -> None:
         """Test get_position returns None for nonexistent entity."""
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         tree = QuadTree(bounds)
 
         entity_id = EntityId(prefab="test", sequence=999)
@@ -349,13 +387,17 @@ class TestQuadTreeNodeDirectly:
         """Test QuadTreeNode.count() includes entities from children."""
         from relics.addons.spatial.quadtree import QuadTreeNode
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Very low capacity to force subdivision
         node = QuadTreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
 
         # Insert entities to trigger subdivision
         for i in range(4):
-            node.insert(EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200)
+            node.insert(
+                EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200
+            )
 
         # Verify children were created
         assert node.children is not None
@@ -367,7 +409,9 @@ class TestQuadTreeNodeDirectly:
         """Test QuadTreeNode.get_all_entities() includes entities from children."""
         from relics.addons.spatial.quadtree import QuadTreeNode
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Very low capacity to force subdivision
         node = QuadTreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
 
@@ -392,7 +436,9 @@ class TestQuadTreeNodeDirectly:
         """Test QuadTreeNode.remove() from child nodes."""
         from relics.addons.spatial.quadtree import QuadTreeNode
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Very low capacity to force subdivision
         node = QuadTreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
 
@@ -415,13 +461,17 @@ class TestQuadTreeNodeDirectly:
         """Test that calling _subdivide on already subdivided node has no effect."""
         from relics.addons.spatial.quadtree import QuadTreeNode
 
-        bounds = QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500)
+        bounds = QuadTreeBounds(
+            center_x=500, center_y=500, half_width=500, half_height=500
+        )
         # Very low capacity to force subdivision
         node = QuadTreeNode(bounds=bounds, max_entities=1, max_depth=4, depth=0)
 
         # Insert to trigger subdivision
         for i in range(4):
-            node.insert(EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200)
+            node.insert(
+                EntityId(prefab="test", sequence=i), 100 + i * 200, 100 + i * 200
+            )
 
         assert node.children is not None
         old_children = node.children

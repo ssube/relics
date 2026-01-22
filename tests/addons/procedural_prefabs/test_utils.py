@@ -1,16 +1,14 @@
 """Tests for utility functions."""
 
-import pytest
 import pydantic.dataclasses
+import pytest
 
 from relics import World
-from relics.types import Component
-
 from relics.addons.procedural_prefabs.edges import HasAttached, HasEquipped, IsWearing
 from relics.addons.procedural_prefabs.utils import (
     DEFAULT_EDGE_TYPES,
-    detach,
     destroy_with_children,
+    detach,
     get_all_children_ids,
     get_child_ids,
     get_children,
@@ -20,6 +18,7 @@ from relics.addons.procedural_prefabs.utils import (
     get_root,
     get_slot,
 )
+from relics.types import Component
 
 
 # Test components

@@ -147,6 +147,7 @@ class TestLazySpatialIndex2D:
     def test_custom_position_extractor(self) -> None:
         """Test using a custom position extractor."""
         from pydantic.dataclasses import dataclass
+
         from relics import Component
 
         @dataclass

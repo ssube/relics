@@ -2,8 +2,6 @@
 
 import pytest
 
-from relics.types import Edge
-
 from relics.addons.procedural_prefabs.edges import (
     EDGE_TYPE_MAP,
     HasAttached,
@@ -13,6 +11,7 @@ from relics.addons.procedural_prefabs.edges import (
     get_edge_class,
     register_edge_type,
 )
+from relics.types import Edge
 
 
 class TestHasEquipped:

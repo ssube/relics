@@ -10,14 +10,9 @@ function instead of relying on the observer.
 
 from typing import TYPE_CHECKING, ClassVar, Dict, List, Optional, Set, Type
 
+from relics.addons.procedural_prefabs.edges import HasAttached, HasEquipped, IsWearing
 from relics.observer import OnEntityDestroyed
 from relics.types import Edge, EntityId
-
-from relics.addons.procedural_prefabs.edges import (
-    HasAttached,
-    HasEquipped,
-    IsWearing,
-)
 
 if TYPE_CHECKING:
     from relics.entity import Entity

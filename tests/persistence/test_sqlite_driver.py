@@ -87,9 +87,7 @@ class TestSQLitePersistenceDriver:
 
             # Verify database structure
             conn = sqlite3.connect(temp_path)
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = {row[0] for row in cursor}
             conn.close()
 
@@ -186,9 +184,7 @@ class TestSQLitePersistenceDriver:
             conn.close()
 
             world2 = World()
-            driver.load(
-                world2, temp_path, {"Position": Position}, {"AllyTo": AllyTo}
-            )
+            driver.load(world2, temp_path, {"Position": Position}, {"AllyTo": AllyTo})
 
             loaded_p1 = world2.get_entity(p1.id)
             assert loaded_p1.has_relationship(AllyTo, p2.id)
@@ -326,9 +322,7 @@ class TestSQLitePersistenceDriver:
 
             # Verify metadata
             conn = sqlite3.connect(str(relic_path))
-            cursor = conn.execute(
-                "SELECT value FROM metadata WHERE key='relic_name'"
-            )
+            cursor = conn.execute("SELECT value FROM metadata WHERE key='relic_name'")
             result = cursor.fetchone()
             conn.close()
             assert result[0] == "test_relic"

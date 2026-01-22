@@ -60,8 +60,7 @@ def create_spatial_index_2d(
     bounds: QuadTreeBounds,
     max_entities_per_node: int = 8,
     max_depth: int = 8,
-) -> MaterializedSpatialIndex2D:
-    ...
+) -> MaterializedSpatialIndex2D: ...
 
 
 @overload
@@ -75,8 +74,7 @@ def create_spatial_index_2d(
     bounds: Optional[QuadTreeBounds] = None,
     max_entities_per_node: int = 8,
     max_depth: int = 8,
-) -> LazySpatialIndex2D:
-    ...
+) -> LazySpatialIndex2D: ...
 
 
 def create_spatial_index_2d(

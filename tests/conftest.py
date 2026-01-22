@@ -6,7 +6,6 @@ from pydantic.dataclasses import dataclass
 
 from relics import Component, Edge, World
 
-
 # =============================================================================
 # Reusable Components
 # =============================================================================

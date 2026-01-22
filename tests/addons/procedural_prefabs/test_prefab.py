@@ -1,7 +1,7 @@
 """Tests for procedural prefab data classes."""
 
-import pytest
 import pydantic
+import pytest
 
 from relics.addons.procedural_prefabs.prefab import (
     AddOperation,

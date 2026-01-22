@@ -91,8 +91,12 @@ class TestQuadTreePerformance:
             list(materialized_index.query_circle(5000, 5000, 500))
         materialized_time = time.perf_counter() - start
 
-        print(f"\nLazy 2D (1k entities, {iterations} queries): {lazy_time*1000:.2f}ms total")
-        print(f"Materialized 2D (1k entities, {iterations} queries): {materialized_time*1000:.2f}ms total")
+        print(
+            f"\nLazy 2D (1k entities, {iterations} queries): {lazy_time*1000:.2f}ms total"
+        )
+        print(
+            f"Materialized 2D (1k entities, {iterations} queries): {materialized_time*1000:.2f}ms total"
+        )
 
         # Materialized should be faster for repeated queries
         # (Note: this may vary based on query region size)
@@ -187,7 +191,9 @@ class TestInsertionPerformance:
 
         bounds = QuadTreeBounds(5000, 5000, 5000, 5000)
         index = MaterializedSpatialIndex2D(
-            world, Position2D, bounds,
+            world,
+            Position2D,
+            bounds,
             max_entities_per_node=16,
             max_depth=10,
         )

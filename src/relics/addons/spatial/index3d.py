@@ -8,28 +8,14 @@ from __future__ import annotations
 
 import heapq
 from abc import abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import TYPE_CHECKING, Callable, Iterator, List, Optional, Set, Tuple, Type
 
 from relics.entity import Entity
 from relics.index import IndexView
 from relics.types import Component, EntityId
 
 from .octree import Octree, OctreeBounds
-from .types import (
-    Box,
-    Sphere,
-    SpatialRegion,
-    distance_3d,
-)
+from .types import Box, SpatialRegion, Sphere, distance_3d
 
 if TYPE_CHECKING:
     from relics.world import World
@@ -226,9 +212,7 @@ class LazySpatialIndex3D(SpatialIndexView3D):
         """
         self._world = world
         self._component_type = component_type
-        self._position_extractor = (
-            position_extractor or default_position_extractor_3d
-        )
+        self._position_extractor = position_extractor or default_position_extractor_3d
 
     def _get_entities_with_positions(
         self,
@@ -252,9 +236,7 @@ class LazySpatialIndex3D(SpatialIndexView3D):
     def count(self) -> int:
         """Count entities with the position component."""
         return sum(
-            1
-            for _ in self._world._entities.values()
-            if self._component_type in _
+            1 for _ in self._world._entities.values() if self._component_type in _
         )
 
     def get_entity_ids(self) -> Set[EntityId]:
@@ -353,9 +335,7 @@ class MaterializedSpatialIndex3D(SpatialIndexView3D):
         """
         self._world = world
         self._component_type = component_type
-        self._position_extractor = (
-            position_extractor or default_position_extractor_3d
-        )
+        self._position_extractor = position_extractor or default_position_extractor_3d
         self._octree = Octree(
             bounds=bounds,
             max_entities_per_node=max_entities_per_node,
