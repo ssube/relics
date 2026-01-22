@@ -238,33 +238,27 @@ class SQLitePersistenceDriver(PersistenceDriver):
         conn = sqlite3.connect(str(path))
         try:
             # Create fixed tables
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE metadata (
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL
                 )
-            """
-            )
+            """)
 
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE prefabs (
                     name TEXT PRIMARY KEY,
                     definition TEXT NOT NULL
                 )
-            """
-            )
+            """)
 
-            conn.execute(
-                """
+            conn.execute("""
                 CREATE TABLE entities (
                     entity_id TEXT PRIMARY KEY,
                     prefab TEXT NOT NULL,
                     created_epoch INTEGER DEFAULT 0
                 )
-            """
-            )
+            """)
 
             # Store metadata
             metadata = {
