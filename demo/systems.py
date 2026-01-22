@@ -12,7 +12,7 @@ from demo.camera import Camera
 from demo.components import (
     BoundingBox,
     CameraInput,
-    CameraMarker,
+    Color,
     Consumable,
     FoxAI,
     FoxState,
@@ -23,19 +23,19 @@ from demo.components import (
     RabbitState,
     Sprite,
     Velocity,
+    Viewport,
 )
 from demo.config import (
     CAMERA_SPEED,
     COLORS,
     ENTITY_FLOWER,
+    FLOWER_COLORS,
     FLOWER_SIZE,
     FOX_SPEED,
     RABBIT_FLEE_RANGE,
     RABBIT_SIZE,
     RABBIT_SPEED,
     SAFE_SPAWN_DISTANCE,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
     WORLD_HEIGHT,
     WORLD_WIDTH,
 )
@@ -205,7 +205,7 @@ class CameraSystem(System):
     """
 
     def query(self):
-        return self.q.with_all([CameraMarker, CameraInput, Velocity])
+        return self.q.with_all([Viewport, CameraInput, Velocity])
 
     def deps(self):
         return {RunOrder.AFTER: [RabbitAISystem, FoxAISystem]}
@@ -278,10 +278,11 @@ class BoundsSystem(System):
             pos = entity.get_component(Position)
             bbox = entity.get_component(BoundingBox)
 
-            # Special handling for camera - use screen size for bounds
-            if entity.has_component(CameraMarker):
-                max_x = WORLD_WIDTH - SCREEN_WIDTH
-                max_y = WORLD_HEIGHT - SCREEN_HEIGHT
+            # Special handling for camera - use viewport size for bounds
+            if entity.has_component(Viewport):
+                viewport = entity.get_component(Viewport)
+                max_x = WORLD_WIDTH - viewport.width
+                max_y = WORLD_HEIGHT - viewport.height
             else:
                 max_x = WORLD_WIDTH - bbox.width
                 max_y = WORLD_HEIGHT - bbox.height
@@ -373,7 +374,7 @@ class CollisionSystem(System):
 
         # Get game stats from camera entity
         stats = None
-        for cam in self.world.query().with_all([CameraMarker, GameStats]).execute_entities():
+        for cam in self.world.query().with_all([Viewport, GameStats]).execute_entities():
             stats = cam.get_component(GameStats)
             break
 
@@ -505,10 +506,14 @@ class CollisionSystem(System):
         # Remove the consumed flower
         self.world.remove(flower)
 
-        # Spawn new flower at random position
+        # Spawn new flower at random position with random color
         x = random.uniform(0, WORLD_WIDTH - FLOWER_SIZE)
         y = random.uniform(0, WORLD_HEIGHT - FLOWER_SIZE)
-        self.world.spawn(ENTITY_FLOWER, {Position: Position(x=x, y=y)})
+        color = random.choice(FLOWER_COLORS)
+        self.world.spawn(ENTITY_FLOWER, {
+            Position: Position(x=x, y=y),
+            Color: Color(r=color[0], g=color[1], b=color[2]),
+        })
 
 
 class RenderSystem:
@@ -530,8 +535,11 @@ class RenderSystem:
         self.screen.fill(COLORS["GRASS"])
 
         # Update camera position from camera entity
-        for entity in self.world.query().with_all([CameraMarker, Position]).execute_entities():
+        for entity in self.world.query().with_all([Viewport, Position]).execute_entities():
             pos = entity.get_component(Position)
+            viewport = entity.get_component(Viewport)
+            self.camera.width = viewport.width
+            self.camera.height = viewport.height
             self.camera.x = pos.x
             self.camera.y = pos.y
             self.camera.clamp_to_world()
@@ -541,16 +549,23 @@ class RenderSystem:
         renderables = []
         for entity in self.world.query().with_all([Position, Sprite, BoundingBox]).execute_entities():
             # Skip camera entity
-            if entity.has_component(CameraMarker):
+            if entity.has_component(Viewport):
                 continue
 
             pos = entity.get_component(Position)
             sprite = entity.get_component(Sprite)
             bbox = entity.get_component(BoundingBox)
 
+            # Get color from Color component if present, otherwise from global COLORS dict
+            if entity.has_component(Color):
+                color_comp = entity.get_component(Color)
+                color = (color_comp.r, color_comp.g, color_comp.b)
+            else:
+                color = COLORS.get(sprite.entity_type.upper(), (255, 0, 255))
+
             # Frustum culling - only render visible entities
             if self.camera.is_visible(pos.x, pos.y, bbox.width, bbox.height):
-                renderables.append((pos, sprite, bbox))
+                renderables.append((pos, sprite, bbox, color))
 
         # Sort by entity type for consistent layering (trees behind animals)
         layer_order = {
@@ -563,9 +578,8 @@ class RenderSystem:
         renderables.sort(key=lambda r: layer_order.get(r[1].entity_type, 5))
 
         # Draw entities
-        for pos, sprite, bbox in renderables:
+        for pos, sprite, bbox, color in renderables:
             screen_x, screen_y = self.camera.world_to_screen(pos.x, pos.y)
-            color = COLORS.get(sprite.entity_type.upper(), (255, 0, 255))
             pygame.draw.rect(
                 self.screen,
                 color,
@@ -588,7 +602,7 @@ class InputSystem:
         """Read input and update camera's CameraInput component."""
         keys = pygame.key.get_pressed()
 
-        for entity in self.world.query().with_all([CameraMarker, CameraInput]).execute_entities():
+        for entity in self.world.query().with_all([Viewport, CameraInput]).execute_entities():
             camera_input = entity.get_component(CameraInput)
 
             camera_input.move_left = keys[pygame.K_a]

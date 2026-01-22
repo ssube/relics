@@ -40,6 +40,13 @@ CAMERA_SPEED = 200.0  # Scroll speed
 # Respawn settings
 SAFE_SPAWN_DISTANCE = 250.0  # Minimum distance from foxes for rabbit respawn
 
+# Flower color palette for randomization
+FLOWER_COLORS = [
+    (128, 0, 128),    # Purple
+    (255, 105, 180),  # Pink
+    (255, 165, 0),    # Orange
+]
+
 # Colors (RGB tuples)
 COLORS = {
     "GRASS": (34, 139, 34),

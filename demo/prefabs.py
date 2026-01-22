@@ -8,7 +8,7 @@ from relics import World
 from demo.components import (
     BoundingBox,
     CameraInput,
-    CameraMarker,
+    Color,
     Consumable,
     FoxAI,
     FoxState,
@@ -19,6 +19,7 @@ from demo.components import (
     RabbitState,
     Sprite,
     Velocity,
+    Viewport,
 )
 from demo.config import (
     CAMERA_SIZE,
@@ -29,6 +30,7 @@ from demo.config import (
     ENTITY_RABBIT,
     ENTITY_STONE,
     ENTITY_TREE,
+    FLOWER_COLORS,
     FLOWER_COUNT_MAX,
     FLOWER_COUNT_MIN,
     FLOWER_SIZE,
@@ -40,6 +42,8 @@ from demo.config import (
     RABBIT_COUNT_MIN,
     RABBIT_SIZE,
     SAFE_SPAWN_DISTANCE,
+    SCREEN_HEIGHT,
+    SCREEN_WIDTH,
     STONE_COUNT_MAX,
     STONE_COUNT_MIN,
     STONE_SIZE,
@@ -117,7 +121,7 @@ def register_prefabs(world: World) -> None:
             Position: Position(x=0, y=0),
             Velocity: Velocity(vx=0, vy=0),
             BoundingBox: BoundingBox(width=CAMERA_SIZE, height=CAMERA_SIZE),
-            CameraMarker: CameraMarker(),
+            Viewport: Viewport(width=SCREEN_WIDTH, height=SCREEN_HEIGHT),
             CameraInput: CameraInput(),
             GameStats: GameStats(),
         },
@@ -232,11 +236,15 @@ def spawn_initial_entities(world: World) -> None:
         if pos:
             world.spawn(ENTITY_STONE, {Position: Position(x=pos[0], y=pos[1])})
 
-    # Spawn flowers
+    # Spawn flowers with random colors
     for _ in range(flower_count):
         pos = find_non_overlapping_position(world, FLOWER_SIZE, FLOWER_SIZE)
         if pos:
-            world.spawn(ENTITY_FLOWER, {Position: Position(x=pos[0], y=pos[1])})
+            color = random.choice(FLOWER_COLORS)
+            world.spawn(ENTITY_FLOWER, {
+                Position: Position(x=pos[0], y=pos[1]),
+                Color: Color(r=color[0], g=color[1], b=color[2]),
+            })
 
     # Spawn foxes (before rabbits, so rabbits can avoid them)
     for _ in range(fox_count):

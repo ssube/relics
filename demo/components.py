@@ -85,10 +85,20 @@ class Consumable(Component):
 
 
 @dataclass
-class CameraMarker(Component):
-    """Marker component for the camera entity."""
+class Color(Component):
+    """Per-entity color override (RGB tuple)."""
 
-    pass
+    r: int
+    g: int
+    b: int
+
+
+@dataclass
+class Viewport(Component):
+    """Camera viewport configuration."""
+
+    width: int
+    height: int
 
 
 @dataclass

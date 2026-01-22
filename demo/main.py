@@ -51,7 +51,7 @@ def draw_hud(screen: pygame.Surface, world: World, fps: float) -> None:
     font = pygame.font.Font(None, 24)
 
     # Count entities
-    from demo.components import CameraMarker, Consumable, FoxAI, GameStats, RabbitAI
+    from demo.components import Consumable, FoxAI, GameStats, RabbitAI, Viewport
 
     rabbit_count = sum(1 for _ in world.query().with_all([RabbitAI]).execute_ids())
     fox_count = sum(1 for _ in world.query().with_all([FoxAI]).execute_ids())
@@ -60,7 +60,7 @@ def draw_hud(screen: pygame.Surface, world: World, fps: float) -> None:
     # Get game stats from camera entity
     rabbits_eaten = 0
     flowers_eaten = 0
-    for cam in world.query().with_all([CameraMarker, GameStats]).execute_entities():
+    for cam in world.query().with_all([Viewport, GameStats]).execute_entities():
         stats = cam.get_component(GameStats)
         rabbits_eaten = stats.rabbits_eaten
         flowers_eaten = stats.flowers_eaten
@@ -119,7 +119,7 @@ def main() -> None:
     spawn_initial_entities(world)
 
     # Create non-ECS systems that need pygame access
-    camera = Camera()
+    camera = Camera(width=SCREEN_WIDTH, height=SCREEN_HEIGHT)
     input_system = InputSystem(world)
     render_system = RenderSystem(screen, camera, world)
 
