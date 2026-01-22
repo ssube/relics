@@ -20,6 +20,9 @@ dev = [
     "isort",
     "mypy",
 ]
+demo = [
+    "pygame-ce>=2.5.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
