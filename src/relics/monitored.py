@@ -41,9 +41,7 @@ class MonitoredMixin:
         object.__setattr__(self, "_monitored_world", None)
         object.__setattr__(self, "_monitored_entity_id", None)
 
-    def _notify_change(
-        self, field_name: str, old_value: Any, new_value: Any
-    ) -> None:
+    def _notify_change(self, field_name: str, old_value: Any, new_value: Any) -> None:
         """Notify the world of a component field change.
 
         Args:

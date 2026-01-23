@@ -432,7 +432,7 @@ class SQLitePersistenceDriver(PersistenceDriver):
             component_tables = [row["name"] for row in cursor]
 
             for table_name in component_tables:
-                comp_name = table_name[len("component_"):]
+                comp_name = table_name[len("component_") :]
                 if comp_name not in component_registry:
                     continue
 
@@ -469,7 +469,7 @@ class SQLitePersistenceDriver(PersistenceDriver):
             edge_tables = [row["name"] for row in cursor]
 
             for table_name in edge_tables:
-                edge_name = table_name[len("edge_"):]
+                edge_name = table_name[len("edge_") :]
                 if edge_name not in edge_registry:
                     continue
 

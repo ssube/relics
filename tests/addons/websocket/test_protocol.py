@@ -133,7 +133,10 @@ class TestPayloads:
     def test_sync_full_payload(self) -> None:
         """Test SyncFullPayload creation."""
         entities = {
-            "player:1": {"prefab": "player", "components": {"Position": {"x": 10, "y": 20}}},
+            "player:1": {
+                "prefab": "player",
+                "components": {"Position": {"x": 10, "y": 20}},
+            },
         }
         payload = SyncFullPayload(epoch=5, entities=entities)
         assert payload.epoch == 5
@@ -231,16 +234,18 @@ class TestMessage:
 
     def test_message_from_json(self) -> None:
         """Test message deserialization from JSON."""
-        json_str = json.dumps({
-            "type": "hello",
-            "sequence": 1,
-            "timestamp": time.time(),
-            "payload": {
-                "client_id": "test_client",
-                "protocol_version": "1.0",
-                "requested_whitelist": ["Position"],
-            },
-        })
+        json_str = json.dumps(
+            {
+                "type": "hello",
+                "sequence": 1,
+                "timestamp": time.time(),
+                "payload": {
+                    "client_id": "test_client",
+                    "protocol_version": "1.0",
+                    "requested_whitelist": ["Position"],
+                },
+            }
+        )
         msg = Message.from_json(json_str)
 
         assert msg.type == MessageType.HELLO

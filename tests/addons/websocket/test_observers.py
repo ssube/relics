@@ -57,8 +57,11 @@ class TestSyncComponentObserver:
         changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, component: Component, field_name: str,
-            old_value: Any, new_value: Any
+            entity: Entity,
+            component: Component,
+            field_name: str,
+            old_value: Any,
+            new_value: Any,
         ) -> None:
             changes.append((entity, component, field_name, old_value, new_value))
 
@@ -86,8 +89,11 @@ class TestSyncComponentObserver:
         changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, component: Component, field_name: str,
-            old_value: Any, new_value: Any
+            entity: Entity,
+            component: Component,
+            field_name: str,
+            old_value: Any,
+            new_value: Any,
         ) -> None:
             changes.append((entity, component, field_name, old_value, new_value))
 
@@ -112,8 +118,11 @@ class TestSyncComponentObserver:
         changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, component: Component, field_name: str,
-            old_value: Any, new_value: Any
+            entity: Entity,
+            component: Component,
+            field_name: str,
+            old_value: Any,
+            new_value: Any,
         ) -> None:
             changes.append((entity, component, field_name, old_value, new_value))
 
@@ -139,8 +148,11 @@ class TestSyncComponentObserver:
         changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, component: Component, field_name: str,
-            old_value: Any, new_value: Any
+            entity: Entity,
+            component: Component,
+            field_name: str,
+            old_value: Any,
+            new_value: Any,
         ) -> None:
             changes.append((entity, component, field_name, old_value, new_value))
 
@@ -165,8 +177,11 @@ class TestSyncComponentObserver:
         changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, component: Component, field_name: str,
-            old_value: Any, new_value: Any
+            entity: Entity,
+            component: Component,
+            field_name: str,
+            old_value: Any,
+            new_value: Any,
         ) -> None:
             changes.append((entity, component, field_name, old_value, new_value))
 
@@ -268,8 +283,11 @@ class TestObserversWithWorld:
         changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, component: Component, field_name: str,
-            old_value: Any, new_value: Any
+            entity: Entity,
+            component: Component,
+            field_name: str,
+            old_value: Any,
+            new_value: Any,
         ) -> None:
             changes.append((entity, component, field_name, old_value, new_value))
 

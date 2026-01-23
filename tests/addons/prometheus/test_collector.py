@@ -71,9 +71,7 @@ class TestWorldMetricsCollectorInit:
     def test_collector_auto_collect_enabled(self) -> None:
         """Test collector with auto-collection enabled."""
         world = World()
-        collector = WorldMetricsCollector(
-            world, world_id="test", collect_on_tick=True
-        )
+        collector = WorldMetricsCollector(world, world_id="test", collect_on_tick=True)
 
         # Original tick should be saved
         assert collector._original_tick is not None
@@ -125,10 +123,13 @@ class TestWorldMetricsCollectorEntityMetrics:
     def test_collect_entities_by_component(self) -> None:
         """Test that entities by component are collected."""
         world = World()
-        world.register_prefab("player", {
-            Position: Position(x=0, y=0),
-            Health: Health(current=100, maximum=100),
-        })
+        world.register_prefab(
+            "player",
+            {
+                Position: Position(x=0, y=0),
+                Health: Health(current=100, maximum=100),
+            },
+        )
         world.register_prefab("obstacle", {Position: Position(x=0, y=0)})
         collector = WorldMetricsCollector(world, world_id="test_component")
 
@@ -157,9 +158,7 @@ class TestWorldMetricsCollectorEntityMetrics:
 
         collector.collect()
 
-        count = COMPONENT_TYPES_COUNT.labels(
-            world_id="test_comp_types"
-        )._value.get()
+        count = COMPONENT_TYPES_COUNT.labels(world_id="test_comp_types")._value.get()
         assert count >= 2  # At least Position and Health
 
     def test_collect_prefab_count(self) -> None:
@@ -240,9 +239,7 @@ class TestWorldMetricsCollectorObserverMetrics:
         collector.collect()
 
         # Queue should be empty initially
-        length = OBSERVER_QUEUE_LENGTH.labels(
-            world_id="test_obs_queue"
-        )._value.get()
+        length = OBSERVER_QUEUE_LENGTH.labels(world_id="test_obs_queue")._value.get()
         assert length == 0
 
 

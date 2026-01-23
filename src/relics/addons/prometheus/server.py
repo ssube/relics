@@ -82,6 +82,7 @@ class MetricsServer:
 
         # Create server manually to control daemon status before starting
         from http.server import HTTPServer
+
         from prometheus_client import MetricsHandler
 
         self._server = HTTPServer((self._addr, self._port), MetricsHandler)

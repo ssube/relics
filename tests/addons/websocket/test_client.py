@@ -260,9 +260,7 @@ class TestWebSocketClientDriverConnect:
 
         mock_ws = AsyncMock()
         # Send GOODBYE instead of WELCOME
-        mock_ws.recv = AsyncMock(
-            return_value=create_goodbye(reason="test").to_json()
-        )
+        mock_ws.recv = AsyncMock(return_value=create_goodbye(reason="test").to_json())
         mock_ws.send = AsyncMock()
         mock_ws.close = AsyncMock()
 
@@ -390,9 +388,7 @@ class TestWebSocketClientDriverMessageHandling:
 
         mock_ws = AsyncMock()
         mock_ws.send = AsyncMock()
-        mock_ws.recv = AsyncMock(
-            return_value=create_heartbeat(ping_id=42).to_json()
-        )
+        mock_ws.recv = AsyncMock(return_value=create_heartbeat(ping_id=42).to_json())
 
         client._state = ConnectionState.READY
         client._websocket = mock_ws
@@ -666,9 +662,7 @@ class TestWebSocketClientDriverAdditionalCoverage:
 
         mock_ws = AsyncMock()
         mock_ws.send = AsyncMock()
-        mock_ws.recv = AsyncMock(
-            return_value=create_heartbeat(ping_id=1).to_json()
-        )
+        mock_ws.recv = AsyncMock(return_value=create_heartbeat(ping_id=1).to_json())
 
         client._state = ConnectionState.READY
         client._websocket = mock_ws
@@ -714,6 +708,7 @@ class TestWebSocketClientDriverAdditionalCoverage:
 
         # Import to access ack creation
         from relics.addons.websocket import create_heartbeat_ack
+
         mock_ws.recv = AsyncMock(
             return_value=create_heartbeat_ack(ping_id=42).to_json()
         )

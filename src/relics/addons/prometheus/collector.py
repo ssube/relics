@@ -74,10 +74,12 @@ class WorldMetricsCollector:
         self._tracked_edge_types: Set[str] = set()
 
         # Set world info
-        WORLD_INFO.info({
-            "world_id": world_id,
-            "version": "1.0",
-        })
+        WORLD_INFO.info(
+            {
+                "world_id": world_id,
+                "version": "1.0",
+            }
+        )
 
         if collect_on_tick:
             self.enable_auto_collect()
@@ -112,24 +114,20 @@ class WorldMetricsCollector:
             return
 
         # Total entity count
-        ENTITY_COUNT.labels(world_id=self._world_id).set(
-            len(self._world._entities)
-        )
+        ENTITY_COUNT.labels(world_id=self._world_id).set(len(self._world._entities))
 
         # Entities by prefab
         current_prefabs = set(self._world._prefab_index.keys())
 
         # Clear old prefabs that no longer exist
         for prefab in self._tracked_prefabs - current_prefabs:
-            ENTITIES_BY_PREFAB.labels(
-                world_id=self._world_id, prefab=prefab
-            ).set(0)
+            ENTITIES_BY_PREFAB.labels(world_id=self._world_id, prefab=prefab).set(0)
 
         # Update current prefabs
         for prefab, entity_ids in self._world._prefab_index.items():
-            ENTITIES_BY_PREFAB.labels(
-                world_id=self._world_id, prefab=prefab
-            ).set(len(entity_ids))
+            ENTITIES_BY_PREFAB.labels(world_id=self._world_id, prefab=prefab).set(
+                len(entity_ids)
+            )
 
         self._tracked_prefabs = current_prefabs
 
@@ -158,27 +156,21 @@ class WorldMetricsCollector:
         )
 
         # Prefab count
-        PREFAB_COUNT.labels(world_id=self._world_id).set(
-            len(self._world._prefabs)
-        )
+        PREFAB_COUNT.labels(world_id=self._world_id).set(len(self._world._prefabs))
 
     def _collect_system_metrics(self) -> None:
         """Collect system-related metrics."""
         if self._world is None:
             return
 
-        SYSTEM_COUNT.labels(world_id=self._world_id).set(
-            len(self._world._systems)
-        )
+        SYSTEM_COUNT.labels(world_id=self._world_id).set(len(self._world._systems))
 
     def _collect_observer_metrics(self) -> None:
         """Collect observer-related metrics."""
         if self._world is None:
             return
 
-        OBSERVER_COUNT.labels(world_id=self._world_id).set(
-            len(self._world._observers)
-        )
+        OBSERVER_COUNT.labels(world_id=self._world_id).set(len(self._world._observers))
 
         OBSERVER_QUEUE_LENGTH.labels(world_id=self._world_id).set(
             len(self._world._observer_queue)
@@ -189,9 +181,7 @@ class WorldMetricsCollector:
         if self._world is None:
             return
 
-        INDEX_COUNT.labels(world_id=self._world_id).set(
-            len(self._world._indexes)
-        )
+        INDEX_COUNT.labels(world_id=self._world_id).set(len(self._world._indexes))
 
         current_indexes = set(self._world._indexes.keys())
 
@@ -226,13 +216,9 @@ class WorldMetricsCollector:
                 edge_name = edge_cls.__name__
                 count = len(targets)
                 total_relationships += count
-                edge_type_counts[edge_name] = (
-                    edge_type_counts.get(edge_name, 0) + count
-                )
+                edge_type_counts[edge_name] = edge_type_counts.get(edge_name, 0) + count
 
-        RELATIONSHIP_COUNT.labels(world_id=self._world_id).set(
-            total_relationships
-        )
+        RELATIONSHIP_COUNT.labels(world_id=self._world_id).set(total_relationships)
 
         current_edge_types = set(edge_type_counts.keys())
 
@@ -309,9 +295,7 @@ class WorldMetricsCollector:
             self._world.tick = self._original_tick  # type: ignore[method-assign]
             self._original_tick = None
 
-    def record_system_execution(
-        self, system_name: str, duration: float
-    ) -> None:
+    def record_system_execution(self, system_name: str, duration: float) -> None:
         """Record the execution time of a system.
 
         Args:

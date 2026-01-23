@@ -54,10 +54,13 @@ class TestClientServerIntegration:
         )
 
         server_world = World()
-        server_world.register_prefab("player", {
-            Position: Position(x=0, y=0),
-            InputState: InputState(),
-        })
+        server_world.register_prefab(
+            "player",
+            {
+                Position: Position(x=0, y=0),
+                InputState: InputState(),
+            },
+        )
         server.attach(server_world)
 
         # Start server on a random port
@@ -73,10 +76,13 @@ class TestClientServerIntegration:
             )
 
             client_world = World()
-            client_world.register_prefab("player", {
-                Position: Position(x=0, y=0),
-                InputState: InputState(),
-            })
+            client_world.register_prefab(
+                "player",
+                {
+                    Position: Position(x=0, y=0),
+                    InputState: InputState(),
+                },
+            )
             client.attach(client_world)
 
             # Connect
@@ -104,10 +110,13 @@ class TestClientServerIntegration:
         )
 
         server_world = World()
-        server_world.register_prefab("player", {
-            Position: Position(x=0, y=0),
-            InputState: InputState(),
-        })
+        server_world.register_prefab(
+            "player",
+            {
+                Position: Position(x=0, y=0),
+                InputState: InputState(),
+            },
+        )
         server_world.register_component_type(Position)
         server_world.register_component_type(InputState)
 
@@ -128,10 +137,13 @@ class TestClientServerIntegration:
             )
 
             client_world = World()
-            client_world.register_prefab("player", {
-                Position: Position(x=0, y=0),
-                InputState: InputState(),
-            })
+            client_world.register_prefab(
+                "player",
+                {
+                    Position: Position(x=0, y=0),
+                    InputState: InputState(),
+                },
+            )
             client_world.register_component_type(Position)
             client_world.register_component_type(InputState)
             client.attach(client_world)
@@ -216,7 +228,10 @@ class TestClientServerIntegration:
             client = WebSocketClientDriver(
                 uri=f"ws://localhost:{port}",
                 client_id="test_client",
-                component_whitelist={InputState, Health},  # Health not allowed by server
+                component_whitelist={
+                    InputState,
+                    Health,
+                },  # Health not allowed by server
             )
 
             client_world = World()

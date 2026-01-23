@@ -62,7 +62,7 @@ class TestComponentChangePerformance:
 
         start = time.perf_counter()
         for component in components:
-            component.current = 80   # Change 1
+            component.current = 80  # Change 1
             component.maximum = 120  # Change 2
         elapsed = time.perf_counter() - start
 

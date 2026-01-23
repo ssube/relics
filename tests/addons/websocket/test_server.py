@@ -297,9 +297,7 @@ class TestWebSocketServerDriverHandshake:
         server = WebSocketServerDriver(host="localhost", port=8765)
 
         mock_ws = AsyncMock()
-        mock_ws.recv = AsyncMock(
-            return_value=create_goodbye(reason="test").to_json()
-        )
+        mock_ws.recv = AsyncMock(return_value=create_goodbye(reason="test").to_json())
         mock_ws.close = AsyncMock()
 
         client_id = await server._handle_handshake(mock_ws)
@@ -655,7 +653,9 @@ class TestWebSocketServerDriverStartStop:
     @pytest.mark.asyncio
     async def test_start_sets_state(self) -> None:
         """Test that start updates state."""
-        server = WebSocketServerDriver(host="localhost", port=0)  # Port 0 for random available port
+        server = WebSocketServerDriver(
+            host="localhost", port=0
+        )  # Port 0 for random available port
 
         mock_serve = AsyncMock()
         mock_server = MagicMock()
@@ -786,6 +786,7 @@ class TestWebSocketServerDriverAdditionalCoverage:
         )
 
         from relics.addons.websocket import create_heartbeat_ack
+
         msg = create_heartbeat_ack(ping_id=42)
 
         # Should not raise
@@ -797,6 +798,7 @@ class TestWebSocketServerDriverAdditionalCoverage:
         server = WebSocketServerDriver(host="localhost", port=8765)
 
         from websockets.exceptions import ConnectionClosed
+
         mock_ws = AsyncMock()
         mock_ws.send = AsyncMock(side_effect=ConnectionClosed(None, None))
 
@@ -878,10 +880,13 @@ class TestWebSocketServerDriverAdditionalCoverage:
         )
 
         world = World()
-        world.register_prefab("player", {
-            Position: Position(x=0, y=0),
-            Health: Health(current=100, maximum=100),
-        })
+        world.register_prefab(
+            "player",
+            {
+                Position: Position(x=0, y=0),
+                Health: Health(current=100, maximum=100),
+            },
+        )
         world.register_component_type(Position)
         world.register_component_type(Health)
         server.attach(world)
@@ -940,6 +945,7 @@ class TestWebSocketServerDriverAdditionalCoverage:
         # No world attached
 
         from relics.addons.websocket import SyncRequestPayload
+
         payload = SyncRequestPayload(since_epoch=0)
 
         # Should not raise
@@ -952,6 +958,7 @@ class TestWebSocketServerDriverAdditionalCoverage:
         # No world attached
 
         from relics.addons.websocket import ComponentChangedPayload
+
         payload = ComponentChangedPayload(
             entity_id="player_1",
             component_type="Position",
