@@ -1,0 +1,47 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.2, pytest-9.0.2, pluggy-1.6.0 -- /home/ssube/code/github/ssube/relics/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/ssube/code/github/ssube/relics
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, cov-7.0.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 9 items
+
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_single_field_change[100] 
+Scale 100: 0.1133ms for 100 field changes
+  Per-change: 1.13us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_single_field_change[1k] 
+Scale 1000: 0.8986ms for 1000 field changes
+  Per-change: 0.90us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_single_field_change[10k] 
+Scale 10000: 10.4314ms for 10000 field changes
+  Per-change: 1.04us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_multiple_field_changes[100] 
+Scale 100: 0.1837ms for 200 field changes
+  Per-change: 0.92us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_multiple_field_changes[1k] 
+Scale 1000: 1.8813ms for 2000 field changes
+  Per-change: 0.94us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_multiple_field_changes[10k] 
+Scale 10000: 19.4206ms for 20000 field changes
+  Per-change: 0.97us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_observer_with_changes[100] 
+Scale 100: 0.2100ms for full change cycle
+  Per-change (incl. observer): 2.10us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_observer_with_changes[1k] 
+Scale 1000: 1.4218ms for full change cycle
+  Per-change (incl. observer): 1.42us
+PASSED
+tests/test_component_change_performance.py::TestComponentChangePerformance::test_memory_allocation 
+Memory allocated for 1000 changes: 0.66 KB
+  Per-change: 1 bytes
+PASSED
+
+============================== 9 passed in 0.20s ===============================

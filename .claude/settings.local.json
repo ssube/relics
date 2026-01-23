@@ -31,7 +31,12 @@
       "Bash(.venv/bin/python -m pytest:*)",
       "Bash(find:*)",
       "Bash(source:*)",
-      "Bash(python demos/character_sheet/main.py:*)"
+      "Bash(python demos/character_sheet/main.py:*)",
+      "Bash(python -m demos.character_sheet.main:*)",
+      "Bash(python -m demos.chain_reaction.main:*)",
+      "Bash(python -m demos.inventory_tree.main:*)",
+      "Bash(python -m demos.hello_ecs.main:*)",
+      "Bash(python -m demos.spatial_aoe.main:*)"
     ]
   }
 }

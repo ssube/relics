@@ -17,7 +17,7 @@ from relics.addons.procedural_prefabs import (
     get_children,
 )
 
-from components import (
+from demos.character_sheet.components import (
     Identity,
     CharacterClass,
     Appearance,
