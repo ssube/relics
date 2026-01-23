@@ -1,13 +1,13 @@
 """Tests for tile grid components."""
 
-import pytest
 import pydantic
+import pytest
 
 from relics.addons.tilegrid import (
     BakedChunk,
     ChunkMetadata,
-    TileElevationLayer,
     TileCollisionLayer,
+    TileElevationLayer,
     TileVisualLayer,
 )
 from relics.monitored import is_monitored

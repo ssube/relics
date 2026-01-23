@@ -14,8 +14,8 @@ from relics.types import Component
 from .components import (
     BakedChunk,
     ChunkMetadata,
-    TileElevationLayer,
     TileCollisionLayer,
+    TileElevationLayer,
     TileVisualLayer,
 )
 

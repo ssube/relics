@@ -115,9 +115,7 @@ def local_to_index(local_x: int, local_y: int, chunk_size: int) -> int:
     return local_y * chunk_size + local_x
 
 
-def local_to_index_3d(
-    local_x: int, local_y: int, local_z: int, chunk_size: int
-) -> int:
+def local_to_index_3d(local_x: int, local_y: int, local_z: int, chunk_size: int) -> int:
     """Convert 3D local tile coordinates to flat array index.
 
     Uses row-major ordering: index = z * (size * size) + y * size + x

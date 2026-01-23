@@ -4,15 +4,13 @@ import pytest
 
 from relics import World
 from relics.addons.tilegrid import (
+    EMPTY_TILE,
     BakedChunk,
     ChunkMetadata,
-    ChunkNotFoundError,
-    TileElevationLayer,
-    EMPTY_TILE,
     LayerNotFoundError,
     TileCollisionLayer,
+    TileElevationLayer,
     TileVisualLayer,
-    chunk_center_from_grid_index,
     create_chunk_index,
     get_chunk_at,
     get_tile_at,
@@ -131,10 +129,12 @@ class TestMultiLayerChunks:
                     sprite_sheets=["tiles"],
                     grid_index=(0, 0),
                 ),
-                TileVisualLayer: TileVisualLayer(name="ground", tiles=[1] * 256, z_order=0),
+                TileVisualLayer: TileVisualLayer(
+                    name="ground", tiles=[1] * 256, z_order=0
+                ),
             },
         )
-        chunk = world.spawn("chunk")
+        world.spawn("chunk")
         world.tick(0)
 
         # Query ground layer
@@ -380,8 +380,8 @@ class TestWithPrefabs:
         )
 
         # Spawn with override
-        chunk1 = world.spawn("chunk", {})
-        chunk2 = world.spawn(
+        world.spawn("chunk", {})
+        world.spawn(
             "chunk",
             {
                 ChunkMetadata: ChunkMetadata(

@@ -1,16 +1,13 @@
 """Tests for tile grid observers."""
 
-import pytest
-
 from relics import World
 from relics.addons.tilegrid import (
     BAKING_LAYER_TYPES,
     BakedChunk,
-    ChunkBakingObserver,
     ChunkIndexObserver,
     ChunkMetadata,
-    TileElevationLayer,
     TileCollisionLayer,
+    TileElevationLayer,
     TileVisualLayer,
     create_baking_observer,
     create_chunk_index,

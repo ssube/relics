@@ -1,7 +1,5 @@
 """Tests for ChunkIndex implementation."""
 
-import pytest
-
 from relics import World
 from relics.addons.tilegrid import ChunkIndex, ChunkMetadata, create_chunk_index
 
@@ -372,7 +370,7 @@ class TestChunkIndexEdgeCases:
                 )
             },
         )
-        e1 = world.spawn("chunk1")
+        world.spawn("chunk1")
         world.tick(0)
         index.invalidate()
 

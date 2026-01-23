@@ -53,12 +53,15 @@ Convenience Functions:
     >>> tile = get_tile_at(world, 150.0, 200.0, "ground", index)
 """
 
+# Import TYPE_CHECKING for convenience function type hints
+from typing import TYPE_CHECKING, Optional
+
 # Components
 from .components import (
     BakedChunk,
     ChunkMetadata,
-    TileElevationLayer,
     TileCollisionLayer,
+    TileElevationLayer,
     TileVisualLayer,
 )
 
@@ -103,9 +106,6 @@ from .utilities import (
     world_to_local,
     world_to_local_3d,
 )
-
-# Import TYPE_CHECKING for convenience function type hints
-from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from relics.entity import Entity

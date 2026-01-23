@@ -3,8 +3,6 @@
 import random
 import time
 
-import pytest
-
 from relics import World
 from relics.addons.tilegrid import (
     ChunkMetadata,
