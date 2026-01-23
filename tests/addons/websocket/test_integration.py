@@ -121,8 +121,8 @@ class TestClientServerIntegration:
         server_world.register_component_type(InputState)
 
         # Spawn some entities on server
-        entity1 = server_world.spawn("player", {Position: Position(x=10, y=20)})
-        entity2 = server_world.spawn("player", {Position: Position(x=30, y=40)})
+        server_world.spawn("player", {Position: Position(x=10, y=20)})
+        server_world.spawn("player", {Position: Position(x=30, y=40)})
         server_world.tick(0)
 
         server.attach(server_world)

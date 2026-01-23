@@ -1,15 +1,12 @@
 """Tests for WebSocket synchronization observers."""
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Tuple
 from unittest.mock import MagicMock
 
-import pytest
 from pydantic.dataclasses import dataclass
 
 from relics import Component, World, monitored
 from relics.addons.websocket import (
-    SyncComponentObserver,
-    SyncEntityObserver,
     create_entity_observer,
     create_sync_observer,
 )

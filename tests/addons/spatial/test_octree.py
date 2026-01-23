@@ -1,7 +1,5 @@
 """Tests for Octree data structure."""
 
-import pytest
-
 from relics.addons.spatial import Box, Octree, OctreeBounds, Sphere
 from relics.types import EntityId
 

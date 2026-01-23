@@ -1,7 +1,6 @@
 """Tests for WebSocket server driver."""
 
 import asyncio
-from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -20,7 +19,6 @@ from relics.addons.websocket import (
     create_hello,
     create_sync_request,
 )
-from relics.addons.websocket.exceptions import ProtocolError
 from relics.types import EntityId
 
 
@@ -599,7 +597,7 @@ class TestWebSocketServerDriverEntityLifecycle:
         server.attach(world)
 
         # Spawn an entity
-        entity = world.spawn("player")
+        world.spawn("player")
         world.tick(0)
 
         # Check that broadcast was queued
@@ -892,7 +890,7 @@ class TestWebSocketServerDriverAdditionalCoverage:
         server.attach(world)
 
         # Spawn entity
-        entity = world.spawn("player")
+        world.spawn("player")
         world.tick(0)
 
         # Clear pending broadcasts from spawn

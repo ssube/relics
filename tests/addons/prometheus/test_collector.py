@@ -1,7 +1,5 @@
 """Tests for WorldMetricsCollector."""
 
-import pytest
-from prometheus_client import REGISTRY
 from pydantic.dataclasses import dataclass
 
 from relics import Component, Edge, World
@@ -19,7 +17,6 @@ from relics.addons.prometheus import (
     RELATIONSHIPS_BY_TYPE,
     SYSTEM_COUNT,
     TICK_COUNT,
-    TICK_DURATION,
     WORLD_EPOCH,
     WorldMetricsCollector,
 )

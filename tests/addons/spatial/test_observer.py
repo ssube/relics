@@ -1,7 +1,5 @@
 """Tests for spatial index observers."""
 
-import pytest
-
 from relics import World
 from relics.addons.spatial import (
     MaterializedSpatialIndex2D,
@@ -292,7 +290,7 @@ class TestSpatialIndexObserver3DComponentBinding:
     """Tests for component binding in 3D spatial observer."""
 
     def test_observer_binds_monitored_component_on_add_3d(self) -> None:
-        """Test that adding a monitored component via add_component triggers binding in 3D."""
+        """Test that adding a monitored component via add_component triggers binding."""
         world = World()
         # Create prefab WITHOUT Position3D
         world.register_prefab("entity_no_pos", {})

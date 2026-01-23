@@ -757,7 +757,7 @@ class TestPrefabSpawnerAttachmentResolution:
                 components=[],
                 attachments=[
                     AttachmentDefinition(
-                        from_list="@missing_param",  # param reference that doesn't exist
+                        from_list="@missing_param",  # doesn't exist
                         optional=True,
                         slot="hand",
                     ),

@@ -1,8 +1,7 @@
 """Tests for WebSocket client driver."""
 
 import asyncio
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic.dataclasses import dataclass

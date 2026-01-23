@@ -57,7 +57,7 @@ class TestInMemoryPersistenceDriver:
         world.register_prefab("player", {Position: Position(x=0, y=0)})
 
         # Create first snapshot
-        entity = world.spawn("player", {Position: Position(x=1, y=1)})
+        world.spawn("player", {Position: Position(x=1, y=1)})
         driver.save(world, "snapshot_1")
 
         # Modify and create second snapshot

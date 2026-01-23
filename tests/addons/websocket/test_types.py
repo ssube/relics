@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from relics.addons.websocket import ClientConnection, ConnectionState
 from relics.types import EntityId
 

@@ -722,7 +722,7 @@ class TestMaterializedIndexUpdates:
         )
 
         p1 = world.spawn("player")
-        p2 = world.spawn("player")
+        world.spawn("player")
 
         # Index for damaged entities (health < max)
         def is_damaged(entity):
@@ -758,7 +758,7 @@ class TestMaterializedIndexUpdates:
         world.register_prefab("basic", {Position: Position(x=0, y=0)})
 
         p1 = world.spawn("basic")
-        p2 = world.spawn("basic")
+        world.spawn("basic")
 
         # Index for entities with Health
         query = world.query().with_all([Health])
@@ -836,7 +836,8 @@ class TestMaterializedIndexUpdates:
         )
 
         # Create many entities
-        entities = [world.spawn("player") for _ in range(100)]
+        for _ in range(100):
+            world.spawn("player")
 
         query = world.query().with_all([Health])
         index = world.create_index(

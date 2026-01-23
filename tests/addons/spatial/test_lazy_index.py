@@ -1,7 +1,5 @@
 """Tests for lazy spatial indexes."""
 
-import pytest
-
 from relics import World
 from relics.addons.spatial import (
     Circle,
@@ -9,7 +7,6 @@ from relics.addons.spatial import (
     LazySpatialIndex3D,
     Position2D,
     Position3D,
-    Rectangle,
     Sphere,
 )
 
@@ -35,7 +32,7 @@ class TestLazySpatialIndex2D:
         e1 = world.spawn("entity")
         assert index.count() == 1
 
-        e2 = world.spawn("entity")
+        world.spawn("entity")
         assert index.count() == 2
 
         world.remove(e1)
@@ -88,7 +85,7 @@ class TestLazySpatialIndex2D:
         index = LazySpatialIndex2D(world, Position2D)
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=50, y=50)})
-        e2 = world.spawn("entity", {Position2D: Position2D(x=200, y=200)})
+        world.spawn("entity", {Position2D: Position2D(x=200, y=200)})
 
         circle = Circle(center_x=50, center_y=50, radius=10)
         results = list(index.query_region(circle))
@@ -105,7 +102,7 @@ class TestLazySpatialIndex2D:
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=10, y=10)})
         e2 = world.spawn("entity", {Position2D: Position2D(x=20, y=20)})
-        e3 = world.spawn("entity", {Position2D: Position2D(x=100, y=100)})
+        world.spawn("entity", {Position2D: Position2D(x=100, y=100)})
 
         results = index.query_nearest(0, 0, count=2)
 
@@ -138,8 +135,8 @@ class TestLazySpatialIndex2D:
 
         index = LazySpatialIndex2D(world, Position2D)
 
-        e1 = world.spawn("entity")
-        e2 = world.spawn("entity")
+        world.spawn("entity")
+        world.spawn("entity")
 
         entities = list(index)
         assert len(entities) == 2
@@ -165,7 +162,7 @@ class TestLazySpatialIndex2D:
         )
 
         e1 = world.spawn("entity", {CustomPos: CustomPos(pos_x=50, pos_y=50)})
-        e2 = world.spawn("entity", {CustomPos: CustomPos(pos_x=500, pos_y=500)})
+        world.spawn("entity", {CustomPos: CustomPos(pos_x=500, pos_y=500)})
 
         results = list(index.query_circle(50, 50, 10))
         assert len(results) == 1
@@ -179,7 +176,7 @@ class TestLazySpatialIndex2D:
         index = LazySpatialIndex2D(world, Position2D)
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=50, y=50)})
-        e2 = world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
+        world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
 
         ids = list(index.query_circle_ids(50, 50, 10))
         assert len(ids) == 1
@@ -193,7 +190,7 @@ class TestLazySpatialIndex2D:
         index = LazySpatialIndex2D(world, Position2D)
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=50, y=50)})
-        e2 = world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
+        world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
 
         ids = list(index.query_rectangle_ids(0, 0, 100, 100))
         assert len(ids) == 1
@@ -207,7 +204,7 @@ class TestLazySpatialIndex2D:
         index = LazySpatialIndex2D(world, Position2D)
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=50, y=50)})
-        e2 = world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
+        world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
 
         circle = Circle(center_x=50, center_y=50, radius=10)
         ids = list(index.query_region_ids(circle))
@@ -273,7 +270,7 @@ class TestLazySpatialIndex3D:
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=10, y=10, z=10)})
         e2 = world.spawn("entity", {Position3D: Position3D(x=20, y=20, z=20)})
-        e3 = world.spawn("entity", {Position3D: Position3D(x=100, y=100, z=100)})
+        world.spawn("entity", {Position3D: Position3D(x=100, y=100, z=100)})
 
         results = index.query_nearest(0, 0, 0, count=2)
 
@@ -290,7 +287,7 @@ class TestLazySpatialIndex3D:
         index = LazySpatialIndex3D(world, Position3D)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=50, y=50, z=50)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
+        world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
 
         ids = list(index.query_sphere_ids(50, 50, 50, 20))
         assert len(ids) == 1
@@ -304,7 +301,7 @@ class TestLazySpatialIndex3D:
         index = LazySpatialIndex3D(world, Position3D)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=50, y=50, z=50)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
+        world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
 
         ids = list(index.query_box_ids(0, 0, 0, 100, 100, 100))
         assert len(ids) == 1
@@ -318,7 +315,7 @@ class TestLazySpatialIndex3D:
         index = LazySpatialIndex3D(world, Position3D)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=50, y=50, z=50)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=200, y=200, z=200)})
+        world.spawn("entity", {Position3D: Position3D(x=200, y=200, z=200)})
 
         sphere = Sphere(center_x=50, center_y=50, center_z=50, radius=10)
         results = list(index.query_region(sphere))
@@ -334,7 +331,7 @@ class TestLazySpatialIndex3D:
         index = LazySpatialIndex3D(world, Position3D)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=50, y=50, z=50)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=200, y=200, z=200)})
+        world.spawn("entity", {Position3D: Position3D(x=200, y=200, z=200)})
 
         sphere = Sphere(center_x=50, center_y=50, center_z=50, radius=10)
         ids = list(index.query_region_ids(sphere))
@@ -364,8 +361,8 @@ class TestLazySpatialIndex3D:
 
         index = LazySpatialIndex3D(world, Position3D)
 
-        e1 = world.spawn("entity")
-        e2 = world.spawn("entity")
+        world.spawn("entity")
+        world.spawn("entity")
 
         entities = list(index)
         assert len(entities) == 2

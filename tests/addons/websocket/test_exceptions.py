@@ -143,7 +143,7 @@ class TestExceptionHierarchy:
         # Check that they can be caught individually
         for error_class in error_classes:
             error = error_class("test")
-            assert type(error) == error_class
+            assert type(error) is error_class
 
     def test_specific_catch_pattern(self) -> None:
         """Test catching specific exception vs base."""

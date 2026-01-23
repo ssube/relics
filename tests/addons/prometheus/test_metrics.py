@@ -1,6 +1,5 @@
 """Tests for Prometheus metric definitions."""
 
-import pytest
 from prometheus_client import Counter, Gauge, Histogram, Info
 
 from relics.addons.prometheus import (

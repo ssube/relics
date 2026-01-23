@@ -7,13 +7,11 @@ import tempfile
 import time
 
 import pydantic.dataclasses
-import pytest
 
 from relics import World
 from relics.addons.procedural_prefabs import (
     HasEquipped,
     ProceduralPrefabRegistry,
-    create_cascade_observer,
     destroy_with_children,
     get_children,
 )

@@ -8,7 +8,7 @@ import pytest
 from pydantic.dataclasses import dataclass
 
 from relics import Component, Edge, World
-from relics.persistence import JSONPersistenceDriver, RelicInfo
+from relics.persistence import JSONPersistenceDriver
 
 
 @dataclass

@@ -1,7 +1,5 @@
 """Tests for when-clause matching."""
 
-import pytest
-
 from relics.addons.procedural_prefabs.context import GenerationContext
 from relics.addons.procedural_prefabs.matcher import (
     find_all_matching_conditionals,

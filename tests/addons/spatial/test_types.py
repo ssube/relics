@@ -1,9 +1,5 @@
 """Tests for spatial query region types."""
 
-import math
-
-import pytest
-
 from relics.addons.spatial import (
     Box,
     Circle,

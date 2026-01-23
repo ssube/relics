@@ -10,18 +10,17 @@ These tests are skipped by default. They benchmark core operations at three scal
 
 import time
 from dataclasses import dataclass as stdlib_dataclass
-from typing import Callable, List, Optional
+from typing import Callable
 
 import pytest
 
 from relics import Component, World
-from relics.system import Frequency, System
+from relics.system import System
 
 from .conftest import (
     AI,
     PERF_SCALE_IDS,
     PERF_SCALES,
-    AllyTo,
     Health,
     Inventory,
     ParentOf,
@@ -974,9 +973,9 @@ class TestScalingAnalysis:
         print("=" * 70)
         print("SCALING ANALYSIS SUMMARY")
         print("=" * 70)
-        print(
-            f"{'Scale':>12} | {'Spawn (ms/ent)':>14} | {'Query (ms/op)':>14} | {'Access (ms/op)':>14}"
-        )
+        header = f"{'Scale':>12} | {'Spawn (ms/ent)':>14} | "
+        header += f"{'Query (ms/op)':>14} | {'Access (ms/op)':>14}"
+        print(header)
         print("-" * 70)
 
         for scale in scales:
@@ -999,9 +998,8 @@ class TestScalingAnalysis:
             scale_factor = scales[1] / scales[0]
             query_growth = results["query"][scales[1]] / results["query"][scales[0]]
             print(f"\nScale increased {scale_factor:.0f}x:")
-            print(
-                f"  - Query time growth: {query_growth:.1f}x (expected ~{scale_factor:.0f}x for O(n))"
-            )
+            expected = f"(expected ~{scale_factor:.0f}x for O(n))"
+            print(f"  - Query time growth: {query_growth:.1f}x {expected}")
 
 
 # =============================================================================

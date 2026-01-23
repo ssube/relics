@@ -1,10 +1,9 @@
 """Tests for DestroyChildrenObserver and cascade deletion utilities."""
 
 import pydantic.dataclasses
-import pytest
 
 from relics import World
-from relics.addons.procedural_prefabs.edges import HasAttached, HasEquipped, IsWearing
+from relics.addons.procedural_prefabs.edges import HasEquipped
 from relics.addons.procedural_prefabs.observer import (
     DestroyChildrenObserver,
     create_cascade_observer,

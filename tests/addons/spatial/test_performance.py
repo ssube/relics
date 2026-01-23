@@ -8,9 +8,7 @@ import pytest
 from relics import World
 from relics.addons.spatial import (
     LazySpatialIndex2D,
-    LazySpatialIndex3D,
     MaterializedSpatialIndex2D,
-    MaterializedSpatialIndex3D,
     OctreeBounds,
     Position2D,
     Position3D,
@@ -49,7 +47,7 @@ class TestQuadTreePerformance:
         start = time.perf_counter()
         iterations = 100
         for _ in range(iterations):
-            results = list(index.query_circle(5000, 5000, 500))
+            list(index.query_circle(5000, 5000, 500))
         elapsed = time.perf_counter() - start
 
         avg_time_ms = (elapsed / iterations) * 1000
@@ -91,12 +89,10 @@ class TestQuadTreePerformance:
             list(materialized_index.query_circle(5000, 5000, 500))
         materialized_time = time.perf_counter() - start
 
-        print(
-            f"\nLazy 2D (1k entities, {iterations} queries): {lazy_time*1000:.2f}ms total"
-        )
-        print(
-            f"Materialized 2D (1k entities, {iterations} queries): {materialized_time*1000:.2f}ms total"
-        )
+        lazy_ms = lazy_time * 1000
+        mat_ms = materialized_time * 1000
+        print(f"\nLazy 2D (1k entities, {iterations} queries): {lazy_ms:.2f}ms total")
+        print(f"Materialized 2D (1k entities, {iterations} queries): {mat_ms:.2f}ms")
 
         # Materialized should be faster for repeated queries
         # (Note: this may vary based on query region size)
@@ -132,7 +128,7 @@ class TestOctreePerformance:
         start = time.perf_counter()
         iterations = 100
         for _ in range(iterations):
-            results = list(index.query_sphere(5000, 5000, 5000, 500))
+            list(index.query_sphere(5000, 5000, 5000, 500))
         elapsed = time.perf_counter() - start
 
         avg_time_ms = (elapsed / iterations) * 1000
@@ -171,7 +167,7 @@ class TestNearestNeighborPerformance:
         start = time.perf_counter()
         iterations = 50
         for _ in range(iterations):
-            results = index.query_nearest(5000, 5000, count=10)
+            index.query_nearest(5000, 5000, count=10)
         elapsed = time.perf_counter() - start
 
         avg_time_ms = (elapsed / iterations) * 1000

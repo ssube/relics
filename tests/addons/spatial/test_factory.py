@@ -64,7 +64,7 @@ class TestCreateSpatialIndex2D:
 
         # Spawn entity and tick - observer should add it
         # Don't access index before spawning to avoid early initialization
-        e1 = world.spawn("entity")
+        world.spawn("entity")
         world.tick(0)
 
         # Now check - index will initialize on first access and include the entity
@@ -123,7 +123,7 @@ class TestCreateSpatialIndex2D:
             bounds=QuadTreeBounds(500, 500, 500, 500),
         )
 
-        e1 = world.spawn("entity")
+        world.spawn("entity")
         world.tick(0)
 
         results = list(index.query_circle(100, 100, 10))
@@ -197,7 +197,7 @@ class TestCreateSpatialIndex3D:
         )
 
         # Spawn entity and tick
-        e1 = world.spawn("entity")
+        world.spawn("entity")
         world.tick(0)
 
         assert index.count() == 1

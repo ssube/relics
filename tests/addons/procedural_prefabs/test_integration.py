@@ -2,11 +2,9 @@
 
 import json
 import os
-import random
 import tempfile
 
 import pydantic.dataclasses
-import pytest
 
 from relics import World
 from relics.addons.procedural_prefabs import (
@@ -14,7 +12,6 @@ from relics.addons.procedural_prefabs import (
     HasEquipped,
     IsWearing,
     ProceduralPrefabRegistry,
-    create_cascade_observer,
     destroy_with_children,
     get_children,
     get_holder,

@@ -1,7 +1,6 @@
 """Tests for utility functions."""
 
 import pydantic.dataclasses
-import pytest
 
 from relics import World
 from relics.addons.procedural_prefabs.edges import HasAttached, HasEquipped, IsWearing

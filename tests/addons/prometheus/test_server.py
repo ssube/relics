@@ -2,7 +2,6 @@
 
 import time
 
-import pytest
 from pydantic.dataclasses import dataclass
 
 from relics import Component, World

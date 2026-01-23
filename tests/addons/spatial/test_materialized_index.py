@@ -1,7 +1,5 @@
 """Tests for materialized spatial indexes."""
 
-import pytest
-
 from relics import World
 from relics.addons.spatial import (
     Circle,
@@ -188,7 +186,7 @@ class TestMaterializedSpatialIndex2D:
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=110, y=110)})
         e2 = world.spawn("entity", {Position2D: Position2D(x=120, y=120)})
-        e3 = world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
+        world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
 
         results = index.query_nearest(100, 100, count=2)
 
@@ -242,7 +240,7 @@ class TestMaterializedSpatialIndex2D:
         index = MaterializedSpatialIndex2D(world, Position2D, bounds)
 
         e1 = world.spawn("entity", {Position2D: Position2D(x=100, y=100)})
-        e2 = world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
+        world.spawn("entity", {Position2D: Position2D(x=500, y=500)})
 
         circle = Circle(center_x=100, center_y=100, radius=10)
         results = list(index.query_region(circle))
@@ -429,7 +427,7 @@ class TestMaterializedSpatialIndex3D:
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=100, y=100, z=100)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
+        world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
 
         ids = list(index.query_sphere_ids(100, 100, 100, 20))
         assert len(ids) == 1
@@ -451,7 +449,7 @@ class TestMaterializedSpatialIndex3D:
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=100, y=100, z=100)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
+        world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
 
         ids = list(index.query_box_ids(0, 0, 0, 200, 200, 200))
         assert len(ids) == 1
@@ -475,7 +473,7 @@ class TestMaterializedSpatialIndex3D:
         index = MaterializedSpatialIndex3D(world, Position3D, bounds)
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=100, y=100, z=100)})
-        e2 = world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
+        world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
 
         sphere = Sphere(center_x=100, center_y=100, center_z=100, radius=10)
         results = list(index.query_region(sphere))
@@ -523,7 +521,7 @@ class TestMaterializedSpatialIndex3D:
 
         e1 = world.spawn("entity", {Position3D: Position3D(x=110, y=110, z=110)})
         e2 = world.spawn("entity", {Position3D: Position3D(x=120, y=120, z=120)})
-        e3 = world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
+        world.spawn("entity", {Position3D: Position3D(x=500, y=500, z=500)})
 
         results = index.query_nearest(100, 100, 100, count=2)
         assert len(results) == 2

@@ -1,7 +1,5 @@
 """Tests for QuadTree data structure."""
 
-import pytest
-
 from relics.addons.spatial import Circle, QuadTree, QuadTreeBounds, Rectangle
 from relics.types import EntityId
 

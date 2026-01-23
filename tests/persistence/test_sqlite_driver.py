@@ -9,7 +9,7 @@ import pytest
 from pydantic.dataclasses import dataclass
 
 from relics import Component, Edge, World
-from relics.persistence import RelicInfo, SQLitePersistenceDriver
+from relics.persistence import SQLitePersistenceDriver
 
 
 @dataclass
@@ -177,9 +177,9 @@ class TestSQLitePersistenceDriver:
 
             # Verify edge table exists
             conn = sqlite3.connect(temp_path)
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='edge_AllyTo'"
-            )
+            sql = "SELECT name FROM sqlite_master "
+            sql += "WHERE type='table' AND name='edge_AllyTo'"
+            cursor = conn.execute(sql)
             assert cursor.fetchone() is not None
             conn.close()
 
