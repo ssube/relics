@@ -242,6 +242,28 @@ world.register_system(MovementSystem())
 world.tick(1/60)
 ```
 
+### System Groups
+
+Systems can be assigned to **groups** for selective execution. This is useful for pausing game systems while keeping input/rendering active:
+
+```python
+class GameSystem(System):
+    group = "game"  # Assign to "game" group
+    # ...
+
+class InputSystem(System):
+    group = "input"  # Assign to "input" group
+    # ...
+
+# Normal tick - run all systems
+world.tick(delta)
+
+# Paused - skip "game" group
+world.tick(delta, exclude_groups=["game"])
+```
+
+See [Systems](SYSTEMS.md) for more details on groups and pausing.
+
 ---
 
 ## 👀 Adding an Observer

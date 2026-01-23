@@ -185,15 +185,17 @@ while game_running:
 ### What Happens During a Tick
 
 1. **Epoch increments** - `world.epoch` increases by 1
-2. **Systems execute** - In topologically-sorted order based on dependencies
+2. **Systems execute** - In topologically-sorted order based on dependencies (filtered by groups)
 3. **Observer queue processes** - Queued events are dispatched
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     world.tick(delta)                       │
+│     world.tick(delta, include_groups=..., exclude_groups=...)│
 ├─────────────────────────────────────────────────────────────┤
 │  1. epoch += 1                                              │
 │  2. For each system (sorted by dependencies):               │
+│     - Check group filter (include/exclude)                  │
+│     - Check paused state                                    │
 │     - Check frequency (should_run?)                         │
 │     - Execute query                                         │
 │     - Call process(entities, components, delta)             │
@@ -222,6 +224,39 @@ while running:
     last_time = current_time
     world.tick(delta)
 ```
+
+### System Group Filtering
+
+Use `include_groups` and `exclude_groups` to selectively run systems:
+
+```python
+# Run all systems (default)
+world.tick(delta)
+
+# Only run specific groups
+world.tick(delta, include_groups=["input", "render"])
+
+# Exclude certain groups (useful for pausing)
+world.tick(delta, exclude_groups=["game"])
+
+# Combine both (must be in include AND not in exclude)
+world.tick(delta, include_groups=["input", "game"], exclude_groups=["game"])
+```
+
+This is useful for implementing game pause:
+
+```python
+paused = False
+
+while running:
+    if paused:
+        # Skip game logic, but keep input and rendering
+        world.tick(delta, exclude_groups=["game"])
+    else:
+        world.tick(delta)
+```
+
+See [Systems](SYSTEMS.md) for details on defining system groups.
 
 ---
 

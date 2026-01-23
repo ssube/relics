@@ -296,6 +296,110 @@ world.register_system(SystemB())  # Raises SystemDependencyCycleError
 
 ---
 
+## 🏷️ System Groups
+
+Systems can be assigned to **groups** for selective execution. This is useful for pausing game logic while keeping input or rendering active.
+
+### Defining a Group
+
+Override the `group` class attribute (default is `"default"`):
+
+```python
+class InputSystem(System):
+    group = "input"  # Always runs, even when game is paused
+
+    def query(self):
+        return self.q.with_all([Input])
+
+    def process(self, entities, components, delta):
+        # Handle input...
+        pass
+
+class PhysicsSystem(System):
+    group = "game"  # Paused during game pause
+
+    def query(self):
+        return self.q.with_all([Position, Velocity])
+
+    def process(self, entities, components, delta):
+        # Physics simulation...
+        pass
+
+class RenderSystem(System):
+    group = "render"  # Always runs
+
+    def query(self):
+        return self.q.with_all([Position, Sprite])
+
+    def process(self, entities, components, delta):
+        # Draw entities...
+        pass
+```
+
+### Filtering Groups in tick()
+
+Use `include_groups` or `exclude_groups` to control which systems run:
+
+```python
+# Normal gameplay - run all systems
+world.tick(delta)
+
+# Paused - exclude "game" group but keep input and render
+world.tick(delta, exclude_groups=["game"])
+
+# Only run specific groups
+world.tick(delta, include_groups=["input", "render"])
+
+# Both can be combined (must be in include AND not in exclude)
+world.tick(delta, include_groups=["input", "game"], exclude_groups=["game"])
+```
+
+### Common Group Patterns
+
+| Group | Purpose | Example Systems |
+|-------|---------|-----------------|
+| `"input"` | Always active for responsiveness | InputSystem, CameraSystem |
+| `"game"` | Core gameplay, paused when needed | PhysicsSystem, AISystem, CollisionSystem |
+| `"render"` | Always active for visual feedback | RenderSystem, UISystem |
+| `"network"` | Network sync, may run independently | SyncSystem, MatchmakingSystem |
+
+---
+
+## ⏸️ Pausing Individual Systems
+
+Individual systems can be paused dynamically using the `paused` property:
+
+```python
+class AISystem(System):
+    def query(self):
+        return self.q.with_all([AI, Position])
+
+    def process(self, entities, components, delta):
+        # AI logic...
+        pass
+
+# Register the system
+ai_system = AISystem()
+world.register_system(ai_system)
+
+# Later, pause just this system
+ai_system.paused = True  # System will be skipped during tick
+
+# Resume
+ai_system.paused = False
+```
+
+### Groups vs Paused
+
+| Feature | Use Case |
+|---------|----------|
+| **Groups** | Pause/resume categories of systems together (e.g., all "game" systems) |
+| **Paused** | Dynamically pause individual systems (e.g., disable AI for debugging) |
+
+You can combine both - a paused system won't run even if its group is active.
+
+---
+
 ## ⏱️ Execution Frequency
 
 Systems don't have to run every tick. Override `frequency()` to control execution:
@@ -521,6 +625,8 @@ class B(System):
 |----------|-------------|
 | `self.world` | The World this system is registered with |
 | `self.q` | Shortcut for `self.world.query()` |
+| `self.group` | The group this system belongs to (default: `"default"`) |
+| `self.paused` | Whether this system is paused (default: `False`) |
 
 ### Frequency Class
 

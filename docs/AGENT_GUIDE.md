@@ -174,7 +174,13 @@ class World:
     def observe(self, observer: Observer) -> None: ...
 
     # Simulation Loop
-    def tick(self, delta: float) -> None: ...  # Advance epoch, run systems, process observer queue
+    def tick(
+        self,
+        delta: float,
+        *,
+        include_groups: list[str] | None = None,  # Only run systems in these groups
+        exclude_groups: list[str] | None = None,  # Skip systems in these groups
+    ) -> None: ...  # Advance epoch, run systems, process observer queue
 
     # Secondary Indexes
     def create_index(self, name: str, query: QueryBuilder, watches: Optional[List[Type[Component]]] = None, materialized: bool = False) -> IndexView: ...
@@ -391,12 +397,19 @@ class RunOrder(Enum):
 
 class System(ABC):
     WILDCARD: ClassVar[Type[System]]  # Sentinel for "all systems"
+    group: str = "default"            # System group for selective execution
 
     @property
     def world(self) -> World: ...
 
     @property
     def q(self) -> QueryBuilder: ...  # Convenience for fresh query builder
+
+    @property
+    def paused(self) -> bool: ...     # Whether system is paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None: ...
 
     @abstractmethod
     def query(self) -> QueryBuilder: ...
@@ -434,6 +447,39 @@ class MovementSystem(System):
         return Frequency.fixed_interval(0.016)  # 60 FPS
 ```
 
+**System Groups:**
+```python
+class InputSystem(System):
+    group = "input"  # Always runs, even when game is paused
+
+class PhysicsSystem(System):
+    group = "game"   # Skipped during pause
+
+class RenderSystem(System):
+    group = "render" # Always runs
+
+# Normal gameplay - run all systems
+world.tick(delta)
+
+# Paused - skip "game" group but keep input and render
+world.tick(delta, exclude_groups=["game"])
+
+# Only run specific groups
+world.tick(delta, include_groups=["input", "render"])
+```
+
+**Pausing Individual Systems:**
+```python
+ai_system = AISystem()
+world.register_system(ai_system)
+
+# Pause just this system (dynamically)
+ai_system.paused = True   # System will be skipped during tick
+
+# Resume
+ai_system.paused = False
+```
+
 ### Common Gotchas
 
 | Issue | Explanation |
@@ -444,6 +490,8 @@ class MovementSystem(System):
 | **Lazy validation** | Entity handles validate existence when accessing, not at creation |
 | **Delta required** | `world.tick(delta)` requires a delta parameter, use `tick(0)` for tests |
 | **Observer method** | Use `world.observe(observer)` not `register_observer` |
+| **System groups** | Default group is `"default"`. Use `include_groups`/`exclude_groups` in `tick()` to filter |
+| **Paused vs groups** | `paused` property is per-system; group filtering applies to categories of systems |
 
 ---
 
