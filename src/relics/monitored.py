@@ -39,19 +39,19 @@ class MonitoredMixin:
         object.__setattr__(self, "_monitored_world", None)
         object.__setattr__(self, "_monitored_entity_id", None)
 
-    def _notify_change(self, old_value: Any, new_value: Any) -> None:
-        """Notify the world of a component change.
+    def _notify_change(
+        self, field_name: str, old_value: Any, new_value: Any
+    ) -> None:
+        """Notify the world of a component field change.
 
         Args:
-            old_value: The previous component state.
-            new_value: The new component state (self).
+            field_name: The name of the field that changed.
+            old_value: The previous field value.
+            new_value: The new field value.
         """
         if self._monitored_world is not None and self._monitored_entity_id is not None:
-            # Copy new_value so observer sees the state at notification time,
-            # not the final state after all changes
-            new_value_copy = copy.copy(new_value)
             self._monitored_world._notify_component_changed(
-                self._monitored_entity_id, old_value, new_value_copy
+                self._monitored_entity_id, self, field_name, old_value, new_value
             )
 
 
@@ -111,14 +111,18 @@ def monitored(cls: Type[T]) -> Type[T]:
         )
 
         if should_notify:
-            # Capture old state
-            old_value = copy.copy(self)
+            # Capture old field value (not entire component)
+            old_field_value = getattr(self, name, None)
+
+            # Deep copy mutable types to preserve old state
+            if isinstance(old_field_value, (list, dict, set)):
+                old_field_value = copy.deepcopy(old_field_value)
 
             # Set the new value
             object.__setattr__(self, name, value)
 
-            # Notify of change
-            self._notify_change(old_value, self)
+            # Notify of change with field-level details
+            self._notify_change(name, old_field_value, value)
         else:
             object.__setattr__(self, name, value)
 

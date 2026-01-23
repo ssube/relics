@@ -14,6 +14,8 @@ import sys
 # Add src to path for running from demos directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
+from typing import Any
+
 import pydantic.dataclasses
 
 from relics import (
@@ -99,18 +101,26 @@ class HealthMonitor(OnComponentChanged):
     def on_component_changed(
         self,
         entity: Entity,
-        old_value: Health,
-        new_value: Health,
+        component: Health,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Check if entity died and queue explosion if explosive.
 
         Args:
             entity: The entity whose health changed.
-            old_value: Previous health value.
-            new_value: New health value.
+            component: The current health component.
+            field_name: The name of the field that changed.
+            old_value: Previous field value.
+            new_value: New field value.
         """
+        # Only react to 'current' field changes
+        if field_name != "current":
+            return
+
         # Check if entity just died (was alive, now at 0 or below)
-        if old_value.current > 0 and new_value.current <= 0:
+        if old_value > 0 and new_value <= 0:
             print(f"  {entity.id} died!")
 
             # If explosive, queue an explosion event

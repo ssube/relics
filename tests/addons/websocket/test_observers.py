@@ -1,6 +1,6 @@
 """Tests for WebSocket synchronization observers."""
 
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from unittest.mock import MagicMock
 
 import pytest
@@ -54,12 +54,13 @@ class TestSyncComponentObserver:
 
     def test_observer_calls_on_change_for_added(self) -> None:
         """Test that on_change is called when component is added."""
-        changes: List[Tuple[Entity, Optional[Component], Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, old: Optional[Component], new: Component
+            entity: Entity, component: Component, field_name: str,
+            old_value: Any, new_value: Any
         ) -> None:
-            changes.append((entity, old, new))
+            changes.append((entity, component, field_name, old_value, new_value))
 
         observer = create_sync_observer(
             component_type=Position,
@@ -75,17 +76,20 @@ class TestSyncComponentObserver:
 
         assert len(changes) == 1
         assert changes[0][0] == entity
-        assert changes[0][1] is None  # old value should be None for additions
-        assert changes[0][2] == component
+        assert changes[0][1] == component
+        assert changes[0][2] == ""  # field_name is empty for additions
+        assert changes[0][3] is None  # old value should be None for additions
+        assert changes[0][4] == component  # new value is the component
 
     def test_observer_calls_on_change_for_changed(self) -> None:
         """Test that on_change is called when component changes."""
-        changes: List[Tuple[Entity, Optional[Component], Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, old: Optional[Component], new: Component
+            entity: Entity, component: Component, field_name: str,
+            old_value: Any, new_value: Any
         ) -> None:
-            changes.append((entity, old, new))
+            changes.append((entity, component, field_name, old_value, new_value))
 
         observer = create_sync_observer(
             component_type=Position,
@@ -93,23 +97,25 @@ class TestSyncComponentObserver:
         )
 
         entity = MagicMock(spec=Entity)
-        old_component = Position(x=0, y=0)
-        new_component = Position(x=10, y=20)
+        component = Position(x=10, y=20)
 
-        observer.on_component_changed(entity, old_component, new_component)
+        observer.on_component_changed(entity, component, "x", 0, 10)
 
         assert len(changes) == 1
-        assert changes[0][1] == old_component
-        assert changes[0][2] == new_component
+        assert changes[0][1] == component
+        assert changes[0][2] == "x"
+        assert changes[0][3] == 0
+        assert changes[0][4] == 10
 
     def test_observer_filter_blocks_changes(self) -> None:
         """Test that filter function can block changes."""
-        changes: List[Tuple[Entity, Optional[Component], Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, old: Optional[Component], new: Component
+            entity: Entity, component: Component, field_name: str,
+            old_value: Any, new_value: Any
         ) -> None:
-            changes.append((entity, old, new))
+            changes.append((entity, component, field_name, old_value, new_value))
 
         # Filter that blocks Position but allows Health
         def filter_fn(comp_type: type) -> bool:
@@ -130,12 +136,13 @@ class TestSyncComponentObserver:
 
     def test_observer_filter_allows_changes(self) -> None:
         """Test that filter function can allow changes."""
-        changes: List[Tuple[Entity, Optional[Component], Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, old: Optional[Component], new: Component
+            entity: Entity, component: Component, field_name: str,
+            old_value: Any, new_value: Any
         ) -> None:
-            changes.append((entity, old, new))
+            changes.append((entity, component, field_name, old_value, new_value))
 
         def filter_fn(comp_type: type) -> bool:
             return comp_type == Health
@@ -155,12 +162,13 @@ class TestSyncComponentObserver:
 
     def test_observer_on_component_removed_is_noop(self) -> None:
         """Test that on_component_removed doesn't trigger callback."""
-        changes: List[Tuple[Entity, Optional[Component], Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, old: Optional[Component], new: Component
+            entity: Entity, component: Component, field_name: str,
+            old_value: Any, new_value: Any
         ) -> None:
-            changes.append((entity, old, new))
+            changes.append((entity, component, field_name, old_value, new_value))
 
         observer = create_sync_observer(
             component_type=Position,
@@ -257,12 +265,13 @@ class TestObserversWithWorld:
 
     def test_component_observer_with_monitored_component(self) -> None:
         """Test that component observer works with monitored components."""
-        changes: List[Tuple[Entity, Optional[Component], Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         def track_change(
-            entity: Entity, old: Optional[Component], new: Component
+            entity: Entity, component: Component, field_name: str,
+            old_value: Any, new_value: Any
         ) -> None:
-            changes.append((entity, old, new))
+            changes.append((entity, component, field_name, old_value, new_value))
 
         world = World()
         world.register_prefab("player", {Health: Health(current=100, maximum=100)})
@@ -285,7 +294,8 @@ class TestObserversWithWorld:
         assert len(changes) >= 1
         # The last change should be the health modification
         last_change = changes[-1]
-        assert last_change[2].current == 50
+        assert last_change[2] == "current"  # field_name
+        assert last_change[4] == 50  # new_value
 
     def test_entity_observer_on_spawn(self) -> None:
         """Test that entity observer fires on spawn."""
@@ -329,19 +339,19 @@ class TestObserversWithWorld:
 
     def test_multiple_observers_same_component(self) -> None:
         """Test multiple observers for the same component type."""
-        changes1: List[Component] = []
-        changes2: List[Component] = []
+        changes1: List[Any] = []
+        changes2: List[Any] = []
 
         world = World()
         world.register_prefab("player", {Health: Health(current=100, maximum=100)})
 
         observer1 = create_sync_observer(
             component_type=Health,
-            on_change=lambda e, o, n: changes1.append(n),
+            on_change=lambda e, c, f, o, n: changes1.append(n),
         )
         observer2 = create_sync_observer(
             component_type=Health,
-            on_change=lambda e, o, n: changes2.append(n),
+            on_change=lambda e, c, f, o, n: changes2.append(n),
         )
         world.observe(observer1)
         world.observe(observer2)

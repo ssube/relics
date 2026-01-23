@@ -512,15 +512,17 @@ class HealthMonitor(OnComponentChanged):
     def __init__(self):
         self.pending_explosions: List[EntityId] = []
 
-    def on_component_changed(self, entity: Entity, old_value: Health, new_value: Health):
-        print(f"  [Health] {entity.id}: {old_value.current} -> {new_value.current}")
+    def on_component_changed(self, entity: Entity, component: Health, field_name: str, old_value: Any, new_value: Any):
+        if field_name != "current":
+            return
+        print(f"  [Health] {entity.id}: {old_value} -> {new_value}")
 
         # Low health warning
-        if new_value.current < new_value.maximum * 0.3 and old_value.current >= old_value.maximum * 0.3:
+        if new_value < component.maximum * 0.3 and old_value >= component.maximum * 0.3:
             print(f"    WARNING: {entity.id} health critical!")
 
         # Track entities that should explode
-        if new_value.current <= 0 and old_value.current > 0:
+        if new_value <= 0 and old_value > 0:
             if entity.has_component(Explosive):
                 self.pending_explosions.append(entity.id)
 

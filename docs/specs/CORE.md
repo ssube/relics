@@ -503,8 +503,10 @@ class OnComponentChanged(Observer):
     def on_component_changed(
         self,
         entity: Entity,
-        old_value: Component,
-        new_value: Component
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any
     ) -> None:
         ...
 
@@ -594,10 +596,10 @@ class HealthBarObserver(OnComponentChanged):
     """Update UI when health changes."""
     component_type = Health
 
-    def on_component_changed(self, entity, old_health, new_health):
-        if new_health.current < old_health.current:
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name == "current" and new_value < old_value:
             # Took damage - flash red
-            self.world.emit(DamageTaken(entity.id, old_health.current - new_health.current))
+            self.world.emit(DamageTaken(entity.id, old_value - new_value))
 
 
 class ScoreObserver(OnCustomEvent):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar, Optional, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type
 
 from relics.types import Component, CustomEvent, Edge
 
@@ -91,15 +91,19 @@ class OnComponentChanged(Observer):
     def on_component_changed(
         self,
         entity: "Entity",
-        old_value: Component,
-        new_value: Component,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
-        """Handle component value change.
+        """Handle component field value change.
 
         Args:
             entity: The entity whose component changed.
-            old_value: The previous component value.
-            new_value: The new component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: The previous value of the field.
+            new_value: The new value of the field.
         """
         pass  # abstract
 
@@ -228,15 +232,19 @@ class ComponentObserver(Observer):
     def on_component_changed(
         self,
         entity: "Entity",
-        old_value: Component,
-        new_value: Component,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
-        """Handle component value change. Override to implement.
+        """Handle component field value change. Override to implement.
 
         Args:
             entity: The entity whose component changed.
-            old_value: The previous component value.
-            new_value: The new component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: The previous value of the field.
+            new_value: The new value of the field.
         """
         pass
 

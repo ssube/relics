@@ -600,8 +600,10 @@ class WebSocketServerDriver(SyncDriver):
     def _on_server_component_change(
         self,
         entity: "Entity",
-        old_value: Optional[Component],
-        new_value: Component,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Handle server-authoritative component change.
 
@@ -609,17 +611,19 @@ class WebSocketServerDriver(SyncDriver):
 
         Args:
             entity: The entity that changed.
-            old_value: Previous component value.
-            new_value: New component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: Previous field value.
+            new_value: New field value.
         """
         if not self._world:
             return
 
         msg = create_component_changed(
             entity_id=entity.id,
-            component_type=type(new_value).__name__,
-            new_value=_component_to_dict(new_value),
-            old_value=_component_to_dict(old_value) if old_value else None,
+            component_type=type(component).__name__,
+            new_value=_component_to_dict(component),
+            old_value=None,  # Field-level change, not full component
             epoch=self._world.epoch,
             sequence=self._next_sequence(),
         )

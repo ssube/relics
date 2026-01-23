@@ -5,7 +5,7 @@ These observers detect changes in the world and trigger sync callbacks.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, ClassVar, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Type
 
 from relics.observer import ComponentObserver, EntityObserver
 from relics.types import Component
@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 
 
 # Type alias for change handlers
-OnChangeCallback = Callable[["Entity", Optional[Component], Component], None]
+# Callback receives: entity, component, field_name, old_value, new_value
+OnChangeCallback = Callable[["Entity", Component, str, Any, Any], None]
 OnEntityCallback = Callable[["Entity"], None]
 
 
@@ -39,7 +40,7 @@ class SyncComponentObserver(ComponentObserver):
 
         Args:
             on_change: Callback for component changes.
-                Signature: (entity, old_value, new_value) -> None
+                Signature: (entity, component, field_name, old_value, new_value) -> None
             filter_fn: Optional filter function to skip certain changes.
                 If returns False, the change is not synchronized.
         """
@@ -56,25 +57,29 @@ class SyncComponentObserver(ComponentObserver):
         """
         if self._filter_fn and not self._filter_fn(type(component)):
             return
-        # For additions, old_value is None
-        self._on_change(entity, None, component)
+        # For additions, pass empty field_name and None for old_value
+        self._on_change(entity, component, "", None, component)
 
     def on_component_changed(
         self,
         entity: "Entity",
-        old_value: Component,
-        new_value: Component,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Handle component change.
 
         Args:
             entity: The entity whose component changed.
-            old_value: The previous component value.
-            new_value: The new component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: The previous value of the field.
+            new_value: The new value of the field.
         """
-        if self._filter_fn and not self._filter_fn(type(new_value)):
+        if self._filter_fn and not self._filter_fn(type(component)):
             return
-        self._on_change(entity, old_value, new_value)
+        self._on_change(entity, component, field_name, old_value, new_value)
 
     def on_component_removed(self, entity: "Entity", component: Component) -> None:
         """Handle component removal.

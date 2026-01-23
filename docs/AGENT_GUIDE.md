@@ -300,7 +300,7 @@ class OnComponentChanged(Observer):
     component_type: ClassVar[Type[Component]]
 
     @abstractmethod
-    def on_component_changed(self, entity: Entity, old_value: Component, new_value: Component) -> None: ...
+    def on_component_changed(self, entity: Entity, component: Component, field_name: str, old_value: Any, new_value: Any) -> None: ...
 
 # Relationship lifecycle
 class OnRelationshipAdded(Observer):
@@ -329,7 +329,7 @@ class ComponentObserver(Observer):
     component_type: ClassVar[Type[Component]]
 
     def on_component_added(self, entity: Entity, component: Component) -> None: pass
-    def on_component_changed(self, entity: Entity, old_value: Component, new_value: Component) -> None: pass
+    def on_component_changed(self, entity: Entity, component: Component, field_name: str, old_value: Any, new_value: Any) -> None: pass
     def on_component_removed(self, entity: Entity, component: Component) -> None: pass
 
 class RelationshipObserver(Observer):
@@ -689,7 +689,7 @@ class SpatialIndexObserver2D(ComponentObserver):
 
     def __init__(self, spatial_index: MaterializedSpatialIndex2D): ...
     def on_component_added(self, entity: Entity, component: Component) -> None: ...
-    def on_component_changed(self, entity: Entity, old_value: Component, new_value: Component) -> None: ...
+    def on_component_changed(self, entity: Entity, component: Component, field_name: str, old_value: Any, new_value: Any) -> None: ...
     def on_component_removed(self, entity: Entity, component: Component) -> None: ...
 
 def create_spatial_observer_2d(spatial_index: MaterializedSpatialIndex2D, component_type: Type[Component]) -> SpatialIndexObserver2D: ...

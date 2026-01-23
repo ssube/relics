@@ -413,8 +413,8 @@ class Health(Component):
 class HealthWatcher(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
-        if new_value.current < old_value.current:
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name == "current" and new_value < old_value:
             print(f"{entity.id} took damage!")
 ```
 

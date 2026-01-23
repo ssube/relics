@@ -1,7 +1,7 @@
 """Tests for relics.monitored module."""
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 from relics import Component, Entity, OnComponentChanged, World, is_monitored, monitored
 
@@ -64,7 +64,7 @@ class TestComponentChangeTracking:
             {Position: Position(x=0, y=0), Health: Health(current=100, maximum=100)},
         )
 
-        changes: List[Tuple[Entity, Component, Component]] = []
+        changes: List[Tuple[Entity, Component, str, Any, Any]] = []
 
         class HealthChangeObserver(OnComponentChanged):
             component_type = Health
@@ -72,10 +72,12 @@ class TestComponentChangeTracking:
             def on_component_changed(
                 self,
                 entity: Entity,
-                old_value: Component,
-                new_value: Component,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
             ) -> None:
-                changes.append((entity, old_value, new_value))
+                changes.append((entity, component, field_name, old_value, new_value))
 
         world.observe(HealthChangeObserver())
 
@@ -90,10 +92,12 @@ class TestComponentChangeTracking:
         world.tick(0.016)
 
         assert len(changes) == 1
-        entity_changed, old_health, new_health = changes[0]
+        entity_changed, component, field_name, old_val, new_val = changes[0]
         assert entity_changed.id == entity.id
-        assert old_health.current == 100  # Old value
-        assert new_health.current == 80  # New value
+        assert field_name == "current"
+        assert old_val == 100  # Old value
+        assert new_val == 80  # New value
+        assert component.current == 80  # Component has the new value
 
     def test_unbound_component_no_notification(self) -> None:
         """Test that unbound component doesn't trigger notifications."""
@@ -118,10 +122,12 @@ class TestComponentChangeTracking:
             def on_component_changed(
                 self,
                 entity: Entity,
-                old_value: Component,
-                new_value: Component,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
             ) -> None:
-                changes.append(new_value.current)
+                changes.append(new_value)
 
         world.observe(HealthChangeObserver())
 
@@ -150,10 +156,12 @@ class TestComponentChangeTracking:
             def on_component_changed(
                 self,
                 entity: Entity,
-                old_value: Component,
-                new_value: Component,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
             ) -> None:
-                changes.append(new_value.current)
+                changes.append(new_value)
 
         world.observe(HealthChangeObserver())
 
@@ -207,10 +215,12 @@ class TestMonitoredEdgeCases:
             def on_component_changed(
                 self,
                 entity: Entity,
-                old_value: Component,
-                new_value: Component,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
             ) -> None:
-                changes.append(new_value.current)
+                changes.append(new_value)
 
         world.observe(HealthChangeObserver())
 
@@ -244,10 +254,12 @@ class TestMonitoredEdgeCases:
             def on_component_changed(
                 self,
                 entity: Entity,
-                old_value: Component,
-                new_value: Component,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
             ) -> None:
-                changes.append(new_value.current)
+                changes.append(new_value)
 
         world.observe(HealthChangeObserver())
 
@@ -275,10 +287,12 @@ class TestMonitoredEdgeCases:
             def on_component_changed(
                 self,
                 entity: Entity,
-                old_value: Component,
-                new_value: Component,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
             ) -> None:
-                changes.append(new_value.current)
+                changes.append(new_value)
 
         world.observe(HealthChangeObserver())
 

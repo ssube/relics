@@ -249,8 +249,8 @@ class HealthTracker(ComponentObserver):
     def on_component_added(self, entity, component):
         print(f"Health added to {entity.id}")
 
-    def on_component_changed(self, entity, old_value, new_value):
-        print(f"Health changed: {old_value.current} -> {new_value.current}")
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        print(f"Health {field_name} changed: {old_value} -> {new_value}")
 
     def on_component_removed(self, entity, component):
         print(f"Health removed from {entity.id}")
@@ -325,10 +325,11 @@ class TrackedHealth(Component):
 class HealthChangeObserver(OnComponentChanged):
     component_type = TrackedHealth
 
-    def on_component_changed(self, entity, old_value, new_value):
-        damage = old_value.current - new_value.current
-        if damage > 0:
-            print(f"Entity took {damage} damage!")
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name == "current":
+            damage = old_value - new_value
+            if damage > 0:
+                print(f"Entity took {damage} damage!")
 ```
 
 ### Secondary Indexes

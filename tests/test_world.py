@@ -359,8 +359,10 @@ class TestComponentObserverOnChanged:
         class HealthTracker(ComponentObserver):
             component_type = MonitoredHealth
 
-            def on_component_changed(self, entity, old_value, new_value):
-                changes.append((old_value.current, new_value.current))
+            def on_component_changed(
+                self, entity, component, field_name, old_value, new_value
+            ):
+                changes.append((field_name, old_value, new_value))
 
         world.observe(HealthTracker())
 
@@ -373,4 +375,4 @@ class TestComponentObserverOnChanged:
         world.tick(0.016)
 
         assert len(changes) == 1
-        assert changes[0] == (100, 80)
+        assert changes[0] == ("current", 100, 80)

@@ -56,8 +56,8 @@ React to component changes:
 class HealthMonitor(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
-        if old_value.current > 0 and new_value.current <= 0:
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name == "current" and old_value > 0 and new_value <= 0:
             print(f"{entity.id} died!")
             # Trigger explosion...
 ```

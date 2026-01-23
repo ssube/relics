@@ -341,7 +341,12 @@ class World:
         self._queue_component_removed(entity, component)
 
     def _notify_component_changed(
-        self, entity_id: EntityId, old_value: Component, new_value: Component
+        self,
+        entity_id: EntityId,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Internal method to notify observers of component changes.
 
@@ -349,11 +354,15 @@ class World:
 
         Args:
             entity_id: The entity's ID.
-            old_value: The previous component value.
-            new_value: The new component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: The previous value of the field.
+            new_value: The new value of the field.
         """
         entity = Entity(self, entity_id)
-        self._queue_component_changed(entity, old_value, new_value)
+        self._queue_component_changed(
+            entity, component, field_name, old_value, new_value
+        )
 
     def register_edge_type(self, edge_type: Type[Edge]) -> None:
         """Register an edge type for persistence.
@@ -795,19 +804,31 @@ class World:
                     )
 
     def _queue_component_changed(
-        self, entity: Entity, old_value: Component, new_value: Component
+        self,
+        entity: Entity,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Queue OnComponentChanged events for observers."""
         from relics.observer import ComponentObserver, OnComponentChanged
 
-        component_type = type(new_value)
+        component_type = type(component)
         for observer in self._observers:
             if isinstance(observer, OnComponentChanged):
                 if observer.component_type is component_type:
                     self._observer_queue.append(
                         (
                             observer,
-                            ("on_component_changed", entity, old_value, new_value),
+                            (
+                                "on_component_changed",
+                                entity,
+                                component,
+                                field_name,
+                                old_value,
+                                new_value,
+                            ),
                         )
                     )
             elif isinstance(observer, ComponentObserver):
@@ -815,7 +836,14 @@ class World:
                     self._observer_queue.append(
                         (
                             observer,
-                            ("on_component_changed", entity, old_value, new_value),
+                            (
+                                "on_component_changed",
+                                entity,
+                                component,
+                                field_name,
+                                old_value,
+                                new_value,
+                            ),
                         )
                     )
 

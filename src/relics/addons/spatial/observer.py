@@ -6,7 +6,7 @@ when entity positions change.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Type
 
 from relics.observer import ComponentObserver
 from relics.types import Component
@@ -59,15 +59,19 @@ class SpatialIndexObserver2D(ComponentObserver):
     def on_component_changed(
         self,
         entity: "Entity",
-        old_value: Component,
-        new_value: Component,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Handle component change by updating entity in spatial index.
 
         Args:
             entity: The entity whose component changed.
-            old_value: The previous component value.
-            new_value: The new component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: The previous value of the field.
+            new_value: The new value of the field.
         """
         self._spatial_index.update(entity.id)
 
@@ -148,15 +152,19 @@ class SpatialIndexObserver3D(ComponentObserver):
     def on_component_changed(
         self,
         entity: "Entity",
-        old_value: Component,
-        new_value: Component,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         """Handle component change by updating entity in spatial index.
 
         Args:
             entity: The entity whose component changed.
-            old_value: The previous component value.
-            new_value: The new component value.
+            component: The current (mutated) component instance.
+            field_name: The name of the field that changed.
+            old_value: The previous value of the field.
+            new_value: The new value of the field.
         """
         self._spatial_index.update(entity.id)
 

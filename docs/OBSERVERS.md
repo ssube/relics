@@ -139,12 +139,13 @@ class Health(Component):
 class HealthChangeHandler(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
-        damage = old_value.current - new_value.current
-        if damage > 0:
-            print(f"{entity.id} took {damage} damage!")
-        elif damage < 0:
-            print(f"{entity.id} healed {-damage}!")
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name == "current":
+            damage = old_value - new_value
+            if damage > 0:
+                print(f"{entity.id} took {damage} damage!")
+            elif damage < 0:
+                print(f"{entity.id} healed {-damage}!")
 ```
 
 ### OnRelationshipAdded
@@ -232,8 +233,8 @@ class HealthObserver(ComponentObserver):
     def on_component_added(self, entity, component):
         print(f"{entity.id}: Health initialized to {component.current}")
 
-    def on_component_changed(self, entity, old_value, new_value):
-        print(f"{entity.id}: Health changed {old_value.current} -> {new_value.current}")
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        print(f"{entity.id}: {field_name} changed {old_value} -> {new_value}")
 
     def on_component_removed(self, entity, component):
         print(f"{entity.id}: Health component removed")
@@ -410,8 +411,8 @@ Observers can trigger more events:
 class DeathHandler(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
-        if new_value.current <= 0:
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name == "current" and new_value <= 0:
             # This will queue OnEntityDestroyed events
             self.world.remove(entity)
 ```
@@ -426,9 +427,9 @@ class DeathHandler(OnComponentChanged):
 class HealthBarUpdater(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
-        # Update health bar UI
-        ui.update_health_bar(entity.id, new_value.current, new_value.maximum)
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        # Update health bar UI on any health field change
+        ui.update_health_bar(entity.id, component.current, component.maximum)
 ```
 
 ### Audio System
@@ -479,14 +480,16 @@ class AchievementTracker(OnCustomEvent):
 class StateMachineObserver(ComponentObserver):
     component_type = AIState
 
-    def on_component_changed(self, entity, old_value, new_value):
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
+        if field_name != "state":
+            return
         # Log state transitions
-        print(f"{entity.id}: {old_value.state} -> {new_value.state}")
+        print(f"{entity.id}: {old_value} -> {new_value}")
 
         # Trigger entry actions
-        if new_value.state == "attacking":
+        if new_value == "attacking":
             entity.add_component(CombatMode())
-        elif old_value.state == "attacking":
+        elif old_value == "attacking":
             entity.remove_component(CombatMode)
 ```
 
@@ -527,9 +530,9 @@ class Health(Component):
 class BadObserver(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
         # This triggers another change event!
-        new_value.current = new_value.current + 1
+        component.current = component.current + 1
 ```
 
 **Solution**: Use guards or different components:
@@ -538,7 +541,7 @@ class BadObserver(OnComponentChanged):
 class SafeObserver(OnComponentChanged):
     component_type = Health
 
-    def on_component_changed(self, entity, old_value, new_value):
+    def on_component_changed(self, entity, component, field_name, old_value, new_value):
         if not entity.has_component(HealingProcessed):
             entity.add_component(HealingProcessed())
             # Safe to modify now
@@ -582,7 +585,7 @@ class GoodObserver(OnComponentAdded):
 | `OnEntityDestroyed` | `prefab` | `on_entity_destroyed(entity)` |
 | `OnComponentAdded` | `component_type` | `on_component_added(entity, component)` |
 | `OnComponentRemoved` | `component_type` | `on_component_removed(entity, component)` |
-| `OnComponentChanged` | `component_type` | `on_component_changed(entity, old, new)` |
+| `OnComponentChanged` | `component_type` | `on_component_changed(entity, component, field_name, old_value, new_value)` |
 | `OnRelationshipAdded` | `edge_type` | `on_relationship_added(source, edge, target)` |
 | `OnRelationshipRemoved` | `edge_type` | `on_relationship_removed(source, edge, target)` |
 | `OnCustomEvent` | `event_type` | `on_event(event)` |

@@ -8,7 +8,7 @@ This example shows how to:
 - Create multi-event observers
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic.dataclasses import dataclass
 
@@ -153,16 +153,27 @@ class HealthTracker(ComponentObserver):
         self.events.append(msg)
         print(f"[HEALTH+] {msg}")
 
-    def on_component_changed(self, entity, old_value, new_value):
-        diff = new_value.current - old_value.current
+    def on_component_changed(
+        self,
+        entity: Entity,
+        component: Component,
+        field_name: str,
+        old_value: Any,
+        new_value: Any,
+    ) -> None:
+        # Only react to 'current' field changes
+        if field_name != "current":
+            return
+
+        diff = new_value - old_value
         direction = "healed" if diff > 0 else "took damage"
-        msg = f"{entity.id} {direction}: {abs(diff)} ({old_value.current} -> {new_value.current})"
+        msg = f"{entity.id} {direction}: {abs(diff)} ({old_value} -> {new_value})"
         self.events.append(msg)
         print(f"[HEALTH~] {msg}")
 
         # Emit damage event
         if diff < 0:
-            self.world.emit(DamageTaken(entity.id, abs(diff), new_value.current))
+            self.world.emit(DamageTaken(entity.id, abs(diff), component.current))
 
     def on_component_removed(self, entity, component):
         msg = f"Health removed from {entity.id}"
