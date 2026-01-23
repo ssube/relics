@@ -14,13 +14,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "flake8",
-    "black",
-    "isort",
-    "mypy",
+    "pytest~=9.0.0",
+    "pytest-asyncio~=1.3.0",
+    "pytest-cov~=7.0.0",
+    "flake8~=7.3.0",
+    "black~=26.1.0",
+    "isort~=7.0.0",
+    "mypy~=1.19.0",
 ]
 demo = [
     "pygame-ce>=2.5.0",

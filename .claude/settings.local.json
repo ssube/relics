@@ -36,7 +36,8 @@
       "Bash(python -m demos.chain_reaction.main:*)",
       "Bash(python -m demos.inventory_tree.main:*)",
       "Bash(python -m demos.hello_ecs.main:*)",
-      "Bash(python -m demos.spatial_aoe.main:*)"
+      "Bash(python -m demos.spatial_aoe.main:*)",
+      "Bash(pip show:*)"
     ]
   }
 }
