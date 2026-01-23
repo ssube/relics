@@ -41,6 +41,17 @@ from relics.addons.spatial import (
     QuadTreeBounds, OctreeBounds,
 )
 
+# Tile grid addon
+from relics.addons.tilegrid import (
+    ChunkMetadata, TileVisualLayer, TileElevationLayer,
+    TileCollisionLayer, BakedChunk,
+    ChunkIndex, create_chunk_index, setup_baking_observers,
+    EMPTY_TILE, get_chunk_at, get_tile_at,
+    world_to_chunk_index, world_to_local, local_to_index,
+    chunk_center_from_grid_index, validate_tile_coords,
+    TileGridError, ChunkNotFoundError, LayerNotFoundError, InvalidTileIndexError,
+)
+
 # Procedural prefabs addon
 from relics.addons.procedural_prefabs import (
     ProceduralPrefabRegistry,
@@ -737,6 +748,264 @@ for entity, distance in index.query_nearest(0, 0, 5):
 
 ---
 
+## Tile Grid Addon (`relics.addons.tilegrid`)
+
+Provides a chunked tile system for building 2D and layered 3D worlds. Chunks are ECS entities with layer components that store tile data, elevation, and collision information.
+
+### Components
+
+All components are `@monitored` for change tracking.
+
+```python
+# src/relics/addons/tilegrid/components.py
+
+@monitored
+class ChunkMetadata(Component):
+    chunk_size: int              # Tiles per edge (e.g., 16, 32, 128)
+    sprite_sheets: List[str]     # Sprite sheet references
+    grid_index: Tuple[int, ...]  # (x, y) for 2D or (x, y, z) for 3D
+
+@monitored
+class TileVisualLayer(Component):
+    name: str                    # Layer identifier (e.g., "ground", "decor")
+    tiles: List[int]             # Flat array, row-major order, -1 = empty
+    z_order: int = 0             # Render priority
+    affected_by_elevation: bool = True
+
+@monitored
+class TileElevationLayer(Component):
+    values: List[float]          # 0.0-1.0 per tile
+
+@monitored
+class TileCollisionLayer(Component):
+    values: List[float]          # 0.0=wall, 0.5=slow, 1.0=normal, >1.0=boost
+
+@monitored
+class BakedChunk(Component):
+    visual_texture_id: str = ""
+    elevation_texture_id: str = ""
+    collision_texture_id: str = ""
+    dirty: bool = True           # True if needs rebaking
+```
+
+### Constants and Types
+
+```python
+# src/relics/addons/tilegrid/types.py
+
+EMPTY_TILE: int = -1             # Sentinel for empty/transparent tiles
+TileIndex = int                   # Type alias for tile indices
+LayerName = str                   # Type alias for layer names
+```
+
+### ChunkIndex
+
+O(1) chunk lookup by grid position using a materialized index.
+
+```python
+# src/relics/addons/tilegrid/index.py
+
+class ChunkIndex(IndexView):
+    def __init__(self, world: World, chunk_size: int): ...
+
+    @property
+    def chunk_size(self) -> int: ...
+
+    def get_chunk_by_grid(self, grid_x: int, grid_y: int) -> Optional[Entity]: ...
+    def get_chunk_by_grid_3d(self, grid_x: int, grid_y: int, grid_z: int) -> Optional[Entity]: ...
+    def get_chunk_at_world_pos(self, x: float, y: float) -> Optional[Entity]: ...
+
+    def add_chunk(self, entity_id: EntityId) -> None: ...
+    def remove_chunk(self, entity_id: EntityId) -> None: ...
+    def update_chunk(self, entity_id: EntityId, old_grid_index: Tuple[int, ...]) -> None: ...
+    def invalidate(self) -> None: ...
+
+    # IndexView interface
+    def __iter__(self) -> Iterator[Entity]: ...
+    def count(self) -> int: ...
+    def get_entity_ids(self) -> Set[EntityId]: ...
+```
+
+### Factory Functions
+
+```python
+# src/relics/addons/tilegrid/factory.py
+
+def create_chunk_index(
+    world: World,
+    chunk_size: int,
+    auto_register_observer: bool = True,
+) -> ChunkIndex: ...
+
+def setup_baking_observers(world: World) -> List[ChunkBakingObserver]: ...
+```
+
+### Coordinate Utilities
+
+```python
+# src/relics/addons/tilegrid/utilities.py
+
+def world_to_chunk_index(x: float, y: float, chunk_size: int) -> Tuple[int, int]: ...
+def world_to_chunk_index_3d(x: float, y: float, z: float, chunk_size: int) -> Tuple[int, int, int]: ...
+
+def world_to_local(world_x: float, world_y: float, chunk_pos_x: float, chunk_pos_y: float, chunk_size: int) -> Tuple[int, int]: ...
+def world_to_local_3d(...) -> Tuple[int, int, int]: ...
+
+def local_to_index(local_x: int, local_y: int, chunk_size: int) -> int: ...
+def local_to_index_3d(local_x: int, local_y: int, local_z: int, chunk_size: int) -> int: ...
+
+def index_to_local(index: int, chunk_size: int) -> Tuple[int, int]: ...
+def index_to_local_3d(index: int, chunk_size: int) -> Tuple[int, int, int]: ...
+
+def validate_tile_coords(local_x: int, local_y: int, chunk_size: int) -> None: ...
+def validate_tile_coords_3d(local_x: int, local_y: int, local_z: int, chunk_size: int) -> None: ...
+
+def chunk_center_from_grid_index(grid_x: int, grid_y: int, chunk_size: int) -> Tuple[float, float]: ...
+def chunk_center_from_grid_index_3d(grid_x: int, grid_y: int, grid_z: int, chunk_size: int) -> Tuple[float, float, float]: ...
+```
+
+### Convenience Functions
+
+```python
+# src/relics/addons/tilegrid/__init__.py
+
+def get_chunk_at(world: World, x: float, y: float, index: ChunkIndex) -> Optional[Entity]: ...
+def get_tile_at(world: World, x: float, y: float, layer_name: str, index: ChunkIndex) -> Optional[int]: ...
+```
+
+### Exceptions
+
+```python
+# src/relics/addons/tilegrid/exceptions.py
+
+class TileGridError(RelicError): ...
+class ChunkNotFoundError(TileGridError): ...
+class LayerNotFoundError(TileGridError): ...
+class InvalidTileIndexError(TileGridError): ...
+```
+
+### Observers
+
+```python
+# src/relics/addons/tilegrid/observer.py
+
+class ChunkIndexObserver(ComponentObserver):
+    component_type = ChunkMetadata
+    def __init__(self, chunk_index: ChunkIndex): ...
+
+class ChunkBakingObserver(ComponentObserver):
+    # component_type set dynamically to layer type
+    # Marks BakedChunk.dirty = True on layer changes
+
+def create_chunk_index_observer(chunk_index: ChunkIndex) -> ChunkIndexObserver: ...
+def create_baking_observer(component_type: Type[Component]) -> ChunkBakingObserver: ...
+
+BAKING_LAYER_TYPES: tuple[Type[Component], ...] = (TileVisualLayer, TileElevationLayer, TileCollisionLayer)
+```
+
+### Usage Example
+
+```python
+from relics import World
+from relics.addons.tilegrid import (
+    ChunkMetadata, TileVisualLayer, TileElevationLayer,
+    create_chunk_index, setup_baking_observers,
+    get_tile_at, local_to_index, EMPTY_TILE,
+)
+
+# Create world and index
+world = World()
+index = create_chunk_index(world, chunk_size=32)
+setup_baking_observers(world)
+
+# Register chunk prefab
+tiles = [1] * (32 * 32)  # All grass
+tiles[local_to_index(5, 5, 32)] = 42  # Special tile at (5, 5)
+
+world.register_prefab(
+    "grass_chunk",
+    {
+        ChunkMetadata: ChunkMetadata(
+            chunk_size=32,
+            sprite_sheets=["overworld_tiles"],
+            grid_index=(0, 0),
+        ),
+        TileVisualLayer: TileVisualLayer(
+            name="ground",
+            tiles=tiles,
+            z_order=0,
+        ),
+    },
+)
+
+# Spawn chunks
+world.spawn("grass_chunk")
+world.spawn("grass_chunk", {
+    ChunkMetadata: ChunkMetadata(
+        chunk_size=32,
+        sprite_sheets=["overworld_tiles"],
+        grid_index=(1, 0),
+    )
+})
+world.tick(0)
+
+# Query tiles
+tile = get_tile_at(world, 5.0, 5.0, "ground", index)
+assert tile == 42
+
+# Check chunk count
+print(f"Loaded chunks: {index.count()}")
+
+# Lookup chunk by grid position
+chunk = index.get_chunk_by_grid(0, 0)
+if chunk:
+    layer = chunk.get_component(TileVisualLayer)
+    print(f"Layer '{layer.name}' has {len(layer.tiles)} tiles")
+```
+
+### Tile Indexing
+
+Tiles use **row-major ordering**: `index = y * chunk_size + x`
+
+```python
+# Example for 32x32 chunk:
+# - Tile (0, 0) -> index 0
+# - Tile (1, 0) -> index 1
+# - Tile (0, 1) -> index 32
+# - Tile (31, 31) -> index 1023
+
+local_x, local_y = 5, 10
+index = local_to_index(local_x, local_y, chunk_size=32)
+# index = 10 * 32 + 5 = 325
+
+# Reverse lookup
+local_x, local_y = index_to_local(325, chunk_size=32)
+# (5, 10)
+```
+
+### Baking Workflow
+
+The baking system tracks which chunks need re-rendering:
+
+1. Observer watches layer components (TileVisualLayer, TileElevationLayer, TileCollisionLayer)
+2. When a layer is added/changed/removed, observer sets `BakedChunk.dirty = True`
+3. Game's baking system queries chunks where `dirty == True`
+4. After baking, game sets `dirty = False` and updates texture IDs
+
+```python
+# Check for dirty chunks
+for chunk in index:
+    if chunk.has_component(BakedChunk):
+        baked = chunk.get_component(BakedChunk)
+        if baked.dirty:
+            # Rebake this chunk
+            texture_id = bake_chunk(chunk)
+            baked.visual_texture_id = texture_id
+            baked.dirty = False
+```
+
+---
+
 ## Procedural Prefabs Addon (`relics.addons.procedural_prefabs`)
 
 ### Registry API
@@ -1034,6 +1303,19 @@ print(f"Destroyed {count} entities")
 | Octree | `src/relics/addons/spatial/octree.py` |
 | Exports | `src/relics/addons/spatial/__init__.py` |
 
+### Tile Grid Addon
+
+| Module | Path |
+|--------|------|
+| Components | `src/relics/addons/tilegrid/components.py` |
+| Exceptions | `src/relics/addons/tilegrid/exceptions.py` |
+| Types | `src/relics/addons/tilegrid/types.py` |
+| Utilities | `src/relics/addons/tilegrid/utilities.py` |
+| Index | `src/relics/addons/tilegrid/index.py` |
+| Observer | `src/relics/addons/tilegrid/observer.py` |
+| Factory | `src/relics/addons/tilegrid/factory.py` |
+| Exports | `src/relics/addons/tilegrid/__init__.py` |
+
 ### Procedural Prefabs Addon
 
 | Module | Path |
@@ -1056,6 +1338,7 @@ print(f"Destroyed {count} entities")
 |------|------|
 | Core tests | `tests/test_*.py` |
 | Spatial tests | `tests/addons/spatial/` |
+| Tile Grid tests | `tests/addons/tilegrid/` |
 | Procedural tests | `tests/addons/procedural_prefabs/` |
 
 ### Demo Files
