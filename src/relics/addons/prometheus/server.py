@@ -118,7 +118,7 @@ def get_metrics_text() -> str:
         >>> metrics = get_metrics_text()
         >>> print(metrics)  # Print all metrics
     """
-    return generate_latest(REGISTRY).decode("utf-8")
+    return generate_latest(REGISTRY).decode("utf-8") # type: ignore[no-any-return]
 
 
 def get_content_type() -> str:
@@ -127,4 +127,4 @@ def get_content_type() -> str:
     Returns:
         The MIME type for Prometheus metrics.
     """
-    return CONTENT_TYPE_LATEST
+    return CONTENT_TYPE_LATEST # type: ignore[no-any-return]
