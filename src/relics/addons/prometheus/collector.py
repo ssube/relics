@@ -26,7 +26,6 @@ from .metrics import (
 )
 
 if TYPE_CHECKING:
-    from relics.types import Edge
     from relics.world import World
 
 
@@ -65,10 +64,10 @@ class WorldMetricsCollector:
             world_id: Unique identifier for labeling metrics.
             collect_on_tick: If True, automatically collect metrics on each tick.
         """
-        self._world = world
+        self._world: Optional["World"] = world
         self._world_id = world_id
         self._collect_on_tick = collect_on_tick
-        self._original_tick: Optional[Callable] = None
+        self._original_tick: Optional[Callable[..., None]] = None
         self._tracked_prefabs: Set[str] = set()
         self._tracked_components: Set[str] = set()
         self._tracked_indexes: Set[str] = set()
@@ -94,7 +93,12 @@ class WorldMetricsCollector:
         This method updates all Prometheus metrics with current values
         from the attached world. Call this periodically or enable
         auto-collection with enable_auto_collect().
+
+        Does nothing if the collector has been detached.
         """
+        if self._world is None:
+            return
+
         self._collect_entity_metrics()
         self._collect_system_metrics()
         self._collect_observer_metrics()
@@ -104,6 +108,9 @@ class WorldMetricsCollector:
 
     def _collect_entity_metrics(self) -> None:
         """Collect entity-related metrics."""
+        if self._world is None:
+            return
+
         # Total entity count
         ENTITY_COUNT.labels(world_id=self._world_id).set(
             len(self._world._entities)
@@ -157,12 +164,18 @@ class WorldMetricsCollector:
 
     def _collect_system_metrics(self) -> None:
         """Collect system-related metrics."""
+        if self._world is None:
+            return
+
         SYSTEM_COUNT.labels(world_id=self._world_id).set(
             len(self._world._systems)
         )
 
     def _collect_observer_metrics(self) -> None:
         """Collect observer-related metrics."""
+        if self._world is None:
+            return
+
         OBSERVER_COUNT.labels(world_id=self._world_id).set(
             len(self._world._observers)
         )
@@ -173,6 +186,9 @@ class WorldMetricsCollector:
 
     def _collect_index_metrics(self) -> None:
         """Collect index-related metrics."""
+        if self._world is None:
+            return
+
         INDEX_COUNT.labels(world_id=self._world_id).set(
             len(self._world._indexes)
         )
@@ -199,12 +215,15 @@ class WorldMetricsCollector:
 
     def _collect_relationship_metrics(self) -> None:
         """Collect relationship-related metrics."""
+        if self._world is None:
+            return
+
         total_relationships = 0
         edge_type_counts: Dict[str, int] = {}
 
         for entity_id, edges_by_type in self._world._relationships.items():
-            for edge_type, targets in edges_by_type.items():
-                edge_name = edge_type.__name__
+            for edge_cls, targets in edges_by_type.items():
+                edge_name = edge_cls.__name__
                 count = len(targets)
                 total_relationships += count
                 edge_type_counts[edge_name] = (
@@ -218,21 +237,24 @@ class WorldMetricsCollector:
         current_edge_types = set(edge_type_counts.keys())
 
         # Clear old edge types
-        for edge_type in self._tracked_edge_types - current_edge_types:
+        for edge_type_name in self._tracked_edge_types - current_edge_types:
             RELATIONSHIPS_BY_TYPE.labels(
-                world_id=self._world_id, edge_type=edge_type
+                world_id=self._world_id, edge_type=edge_type_name
             ).set(0)
 
         # Update current edge types
-        for edge_type, count in edge_type_counts.items():
+        for edge_type_name, count in edge_type_counts.items():
             RELATIONSHIPS_BY_TYPE.labels(
-                world_id=self._world_id, edge_type=edge_type
+                world_id=self._world_id, edge_type=edge_type_name
             ).set(count)
 
         self._tracked_edge_types = current_edge_types
 
     def _collect_world_state_metrics(self) -> None:
         """Collect world state metrics."""
+        if self._world is None:
+            return
+
         WORLD_EPOCH.labels(world_id=self._world_id).set(self._world.epoch)
 
     def enable_auto_collect(self) -> None:
@@ -241,16 +263,29 @@ class WorldMetricsCollector:
         This wraps the world's tick method to collect metrics and
         record tick duration automatically.
         """
+        if self._world is None:
+            return
+
         if self._original_tick is not None:
             return  # Already enabled
 
-        self._original_tick = self._world.tick
+        original_tick = self._world.tick
+        self._original_tick = original_tick
 
-        def instrumented_tick(delta: float) -> None:
+        def instrumented_tick(
+            delta: float,
+            *,
+            include_groups: list[str] | None = None,
+            exclude_groups: list[str] | None = None,
+        ) -> None:
             start_time = time.perf_counter()
 
-            # Call original tick
-            self._original_tick(delta)
+            # Call original tick with any group filtering
+            original_tick(
+                delta,
+                include_groups=include_groups,
+                exclude_groups=exclude_groups,
+            )
 
             # Record tick duration
             duration = time.perf_counter() - start_time
@@ -260,15 +295,18 @@ class WorldMetricsCollector:
             # Collect all metrics
             self.collect()
 
-        self._world.tick = instrumented_tick
+        self._world.tick = instrumented_tick  # type: ignore[method-assign]
 
     def disable_auto_collect(self) -> None:
         """Disable automatic metrics collection.
 
         Restores the original tick method.
         """
+        if self._world is None:
+            return
+
         if self._original_tick is not None:
-            self._world.tick = self._original_tick
+            self._world.tick = self._original_tick  # type: ignore[method-assign]
             self._original_tick = None
 
     def record_system_execution(

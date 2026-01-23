@@ -14,8 +14,6 @@ from prometheus_client import (
 if TYPE_CHECKING:
     from http.server import HTTPServer
 
-    from .collector import WorldMetricsCollector
-
 
 class MetricsServer:
     """HTTP server for exposing Prometheus metrics.
