@@ -564,8 +564,8 @@ class WebSocketClientDriver(SyncDriver):
         comp_type = self._world._component_types[comp_name]
 
         # Check if entity has this component
-        if entity.has(comp_type):
-            component = entity.get(comp_type)
+        if entity.has_component(comp_type):
+            component = entity.get_component(comp_type)
             # Update fields directly
             for field_name, value in comp_fields.items():
                 if hasattr(component, field_name):
