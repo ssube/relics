@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import copy
 from dataclasses import fields
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Type, TypeVar, cast
+
+from relics.types import Component
 
 if TYPE_CHECKING:
     from relics.types import EntityId
@@ -51,7 +53,11 @@ class MonitoredMixin:
         """
         if self._monitored_world is not None and self._monitored_entity_id is not None:
             self._monitored_world._notify_component_changed(
-                self._monitored_entity_id, self, field_name, old_value, new_value
+                self._monitored_entity_id,
+                cast(Component, self),
+                field_name,
+                old_value,
+                new_value,
             )
 
 

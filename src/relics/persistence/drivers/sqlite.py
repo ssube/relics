@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,7 +13,6 @@ from typing import (
     List,
     Optional,
     Set,
-    Tuple,
     Type,
     Union,
     cast,
@@ -286,10 +284,9 @@ class SQLitePersistenceDriver(PersistenceDriver):
 
             # Store entities
             for entity_id in world._entities:
-                conn.execute(
-                    "INSERT INTO entities (entity_id, prefab, created_epoch) VALUES (?, ?, ?)",
-                    (str(entity_id), entity_id.prefab, 0),
-                )
+                sql = "INSERT INTO entities (entity_id, prefab, created_epoch) "
+                sql += "VALUES (?, ?, ?)"
+                conn.execute(sql, (str(entity_id), entity_id.prefab, 0))
 
             # Create component tables and store data
             component_types_seen: Set[Type[Component]] = set()
@@ -312,7 +309,12 @@ class SQLitePersistenceDriver(PersistenceDriver):
                     ]
 
                     table_name = f"component_{comp_type.__name__}"
-                    sql = f"INSERT INTO {table_name} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
+                    fields_str = ", ".join(fields)
+                    placeholders_str = ", ".join(placeholders)
+                    sql = (
+                        f"INSERT INTO {table_name} ({fields_str}) "
+                        f"VALUES ({placeholders_str})"
+                    )
                     conn.execute(sql, values)
 
             # Create edge tables and store relationships
@@ -335,7 +337,12 @@ class SQLitePersistenceDriver(PersistenceDriver):
                         ]
 
                         table_name = f"edge_{edge_type.__name__}"
-                        sql = f"INSERT INTO {table_name} ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
+                        fields_str = ", ".join(fields)
+                        placeholders_str = ", ".join(placeholders)
+                        sql = (
+                            f"INSERT INTO {table_name} ({fields_str}) "
+                            f"VALUES ({placeholders_str})"
+                        )
                         conn.execute(sql, values)
 
             conn.commit()
@@ -419,13 +426,13 @@ class SQLitePersistenceDriver(PersistenceDriver):
                 world._prefab_index[prefab].add(entity_id)
 
             # Find and load component tables
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'component_%'"
-            )
+            sql = "SELECT name FROM sqlite_master "
+            sql += "WHERE type='table' AND name LIKE 'component_%'"
+            cursor = conn.execute(sql)
             component_tables = [row["name"] for row in cursor]
 
             for table_name in component_tables:
-                comp_name = table_name[len("component_") :]
+                comp_name = table_name[len("component_"):]
                 if comp_name not in component_registry:
                     continue
 
@@ -456,13 +463,13 @@ class SQLitePersistenceDriver(PersistenceDriver):
                     world._component_index[comp_type].add(entity_id)
 
             # Find and load edge tables
-            cursor = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'edge_%'"
-            )
+            sql = "SELECT name FROM sqlite_master "
+            sql += "WHERE type='table' AND name LIKE 'edge_%'"
+            cursor = conn.execute(sql)
             edge_tables = [row["name"] for row in cursor]
 
             for table_name in edge_tables:
-                edge_name = table_name[len("edge_") :]
+                edge_name = table_name[len("edge_"):]
                 if edge_name not in edge_registry:
                     continue
 

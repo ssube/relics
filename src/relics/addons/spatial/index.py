@@ -15,7 +15,7 @@ from relics.index import IndexView
 from relics.types import Component, EntityId
 
 from .quadtree import QuadTree, QuadTreeBounds
-from .types import Circle, Rectangle, SpatialRegion, distance_2d, distance_squared_2d
+from .types import Circle, Rectangle, SpatialRegion, distance_2d
 
 if TYPE_CHECKING:
     from relics.world import World

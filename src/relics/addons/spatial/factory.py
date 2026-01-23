@@ -6,7 +6,16 @@ with optional automatic observer registration.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Optional, Tuple, Type, Union, overload
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    overload,
+)
 
 from relics.types import Component
 
@@ -55,7 +64,7 @@ def create_spatial_index_2d(
     *,
     component_type: Type[Component] = Position2D,
     position_extractor: Optional[PositionExtractor2D] = None,
-    materialized: bool = True,
+    materialized: Literal[True] = True,
     auto_register_observer: bool = True,
     bounds: QuadTreeBounds,
     max_entities_per_node: int = 8,
@@ -69,7 +78,7 @@ def create_spatial_index_2d(
     *,
     component_type: Type[Component] = Position2D,
     position_extractor: Optional[PositionExtractor2D] = None,
-    materialized: bool = False,
+    materialized: Literal[False],
     auto_register_observer: bool = True,
     bounds: Optional[QuadTreeBounds] = None,
     max_entities_per_node: int = 8,
@@ -203,7 +212,6 @@ def create_spatial_index_3d(
     """
     # Import here to avoid circular imports
     from .index3d import LazySpatialIndex3D, MaterializedSpatialIndex3D
-    from .octree import OctreeBounds
 
     extractor = position_extractor or default_position_extractor_3d
 

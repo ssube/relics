@@ -6,7 +6,7 @@ when entity positions change.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Type
+from typing import TYPE_CHECKING, Any, ClassVar, Type, cast
 
 from relics.observer import ComponentObserver
 from relics.types import Component
@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from relics.entity import Entity
 
     from .index import MaterializedSpatialIndex2D
+    from .index3d import MaterializedSpatialIndex3D
 
 
 class SpatialIndexObserver2D(ComponentObserver):
@@ -107,7 +108,7 @@ def create_spatial_observer_2d(
         (SpatialIndexObserver2D,),
         {"component_type": component_type},
     )
-    return observer_class(spatial_index)
+    return cast(SpatialIndexObserver2D, observer_class(spatial_index))
 
 
 class SpatialIndexObserver3D(ComponentObserver):
@@ -126,7 +127,7 @@ class SpatialIndexObserver3D(ComponentObserver):
 
     component_type: ClassVar[Type[Component]]
 
-    def __init__(self, spatial_index: "MaterializedSpatialIndex3D") -> None:  # type: ignore[name-defined]
+    def __init__(self, spatial_index: "MaterializedSpatialIndex3D") -> None:
         """Create a spatial index observer.
 
         Args:
@@ -179,7 +180,7 @@ class SpatialIndexObserver3D(ComponentObserver):
 
 
 def create_spatial_observer_3d(
-    spatial_index: "MaterializedSpatialIndex3D",  # type: ignore[name-defined]
+    spatial_index: "MaterializedSpatialIndex3D",
     component_type: Type[Component],
 ) -> SpatialIndexObserver3D:
     """Create a spatial index observer for a specific 3D component type.
@@ -200,4 +201,4 @@ def create_spatial_observer_3d(
         (SpatialIndexObserver3D,),
         {"component_type": component_type},
     )
-    return observer_class(spatial_index)
+    return cast(SpatialIndexObserver3D, observer_class(spatial_index))

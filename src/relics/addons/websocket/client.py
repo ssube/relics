@@ -14,10 +14,8 @@ from relics.types import Component, EntityId
 
 from .base import SyncDriver
 from .exceptions import (
-    AuthorizationError,
     ConnectionError,
     HandshakeError,
-    ProtocolError,
     ReconnectionError,
     SyncError,
 )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Type, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type, cast
 
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
@@ -13,10 +13,14 @@ from relics.persistence.serialization import _component_to_dict
 from relics.types import Component, EntityId
 
 from .base import SyncDriver
-from .exceptions import AuthorizationError, ProtocolError
-from .observers import SyncComponentObserver, SyncEntityObserver, create_entity_observer, create_sync_observer
+from .exceptions import ProtocolError
+from .observers import (
+    SyncComponentObserver,
+    SyncEntityObserver,
+    create_entity_observer,
+    create_sync_observer,
+)
 from .protocol import (
-    PROTOCOL_VERSION,
     ComponentChangedPayload,
     HelloPayload,
     Message,
@@ -165,7 +169,8 @@ class WebSocketServerDriver(SyncDriver):
         except Exception as e:
             self._state = ConnectionState.DISCONNECTED
             self._running = False
-            raise ConnectionError(f"Failed to start server on {self.host}:{self.port}: {e}") from e
+            msg = f"Failed to start server on {self.host}:{self.port}: {e}"
+            raise ConnectionError(msg) from e
 
         self._state = ConnectionState.READY
         logger.info(f"WebSocket server started on {self.host}:{self.port}")
@@ -459,7 +464,9 @@ class WebSocketServerDriver(SyncDriver):
         # Check if client is allowed to change this component
         if payload.component_type not in client.component_whitelist:
             logger.warning(
-                f"Client {client_id} attempted unauthorized change to {payload.component_type}"
+                "Client %s attempted unauthorized change to %s",
+                client_id,
+                payload.component_type,
             )
             rejected = create_rejected(
                 original_sequence=original_sequence,
@@ -508,7 +515,9 @@ class WebSocketServerDriver(SyncDriver):
                 new_component = comp_type(**payload.new_value)
                 entity.add_component(new_component)
             except Exception as e:
-                logger.warning(f"Failed to create component {payload.component_type}: {e}")
+                logger.warning(
+                    "Failed to create component %s: %s", payload.component_type, e
+                )
                 rejected = create_rejected(
                     original_sequence=original_sequence,
                     reason=f"Failed to create component: {e}",

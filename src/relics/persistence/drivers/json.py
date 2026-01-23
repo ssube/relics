@@ -325,7 +325,8 @@ class JSONPersistenceDriver(PersistenceDriver):
                     data = json.load(f)
 
                 metadata = data.get("metadata", {})
-                # Use relic_name from metadata if available, otherwise derive from filename
+                # Use relic_name from metadata if available,
+                # otherwise derive from filename
                 name = metadata.get("relic_name", json_file.stem)
 
                 relics.append(

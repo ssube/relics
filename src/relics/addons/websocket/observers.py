@@ -5,7 +5,7 @@ These observers detect changes in the world and trigger sync callbacks.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Optional, Type, cast
 
 from relics.observer import ComponentObserver, EntityObserver
 from relics.types import Component
@@ -118,7 +118,10 @@ def create_sync_observer(
         (SyncComponentObserver,),
         {"component_type": component_type},
     )
-    return observer_class(on_change=on_change, filter_fn=filter_fn)
+    return cast(
+        SyncComponentObserver,
+        observer_class(on_change=on_change, filter_fn=filter_fn),
+    )
 
 
 class SyncEntityObserver(EntityObserver):
@@ -186,4 +189,7 @@ def create_entity_observer(
         (SyncEntityObserver,),
         {"prefab": prefab},
     )
-    return observer_class(on_created=on_created, on_destroyed=on_destroyed)
+    return cast(
+        SyncEntityObserver,
+        observer_class(on_created=on_created, on_destroyed=on_destroyed),
+    )
