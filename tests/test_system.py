@@ -638,3 +638,229 @@ class TestSystemIterate:
         # Second list is Velocity components - only "full" entity has Velocity
         assert len(received_components[1]) == 1
         assert all(isinstance(c, Velocity) for c in received_components[1])
+
+
+class TestSystemGroup:
+    """Tests for System group functionality."""
+
+    def test_default_group(self) -> None:
+        """Test that systems have 'default' group by default."""
+
+        class TestSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                pass
+
+        system = TestSystem()
+        assert system.group == "default"
+
+    def test_custom_group(self) -> None:
+        """Test that systems can define custom groups."""
+
+        class GameSystem(System):
+            group = "game"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                pass
+
+        system = GameSystem()
+        assert system.group == "game"
+
+    def test_include_groups(self) -> None:
+        """Test tick with include_groups only runs specified groups."""
+        world = World()
+        execution_order: List[str] = []
+
+        class InputSystem(System):
+            group = "input"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("input")
+
+        class GameSystem(System):
+            group = "game"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("game")
+
+        class RenderSystem(System):
+            group = "render"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("render")
+
+        world.register_system(InputSystem())
+        world.register_system(GameSystem())
+        world.register_system(RenderSystem())
+
+        # Only run input and render groups
+        world.tick(0.016, include_groups=["input", "render"])
+
+        assert "input" in execution_order
+        assert "render" in execution_order
+        assert "game" not in execution_order
+
+    def test_exclude_groups(self) -> None:
+        """Test tick with exclude_groups skips specified groups."""
+        world = World()
+        execution_order: List[str] = []
+
+        class InputSystem(System):
+            group = "input"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("input")
+
+        class GameSystem(System):
+            group = "game"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("game")
+
+        class RenderSystem(System):
+            group = "render"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("render")
+
+        world.register_system(InputSystem())
+        world.register_system(GameSystem())
+        world.register_system(RenderSystem())
+
+        # Exclude game group (simulating pause)
+        world.tick(0.016, exclude_groups=["game"])
+
+        assert "input" in execution_order
+        assert "render" in execution_order
+        assert "game" not in execution_order
+
+    def test_include_and_exclude_groups(self) -> None:
+        """Test tick with both include and exclude groups."""
+        world = World()
+        execution_order: List[str] = []
+
+        class SystemA(System):
+            group = "a"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("a")
+
+        class SystemB(System):
+            group = "b"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("b")
+
+        class SystemC(System):
+            group = "c"
+
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_order.append("c")
+
+        world.register_system(SystemA())
+        world.register_system(SystemB())
+        world.register_system(SystemC())
+
+        # Include a and b, but exclude b (b shouldn't run)
+        world.tick(0.016, include_groups=["a", "b"], exclude_groups=["b"])
+
+        assert "a" in execution_order
+        assert "b" not in execution_order
+        assert "c" not in execution_order
+
+
+class TestSystemPaused:
+    """Tests for System paused functionality."""
+
+    def test_default_not_paused(self) -> None:
+        """Test that systems are not paused by default."""
+
+        class TestSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                pass
+
+        system = TestSystem()
+        assert system.paused is False
+
+    def test_paused_system_skipped(self) -> None:
+        """Test that paused systems are skipped during tick."""
+        world = World()
+        execution_count = [0]
+
+        class TestSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                execution_count[0] += 1
+
+        system = TestSystem()
+        world.register_system(system)
+
+        # Run normally
+        world.tick(0.016)
+        assert execution_count[0] == 1
+
+        # Pause and run
+        system.paused = True
+        world.tick(0.016)
+        assert execution_count[0] == 1  # Still 1, didn't run
+
+        # Unpause and run
+        system.paused = False
+        world.tick(0.016)
+        assert execution_count[0] == 2
+
+    def test_paused_property_setter(self) -> None:
+        """Test that paused can be set via property."""
+
+        class TestSystem(System):
+            def query(self) -> QueryBuilder:
+                return self.q
+
+            def process(self, entities, components, delta) -> None:
+                pass
+
+        system = TestSystem()
+        assert system.paused is False
+
+        system.paused = True
+        assert system.paused is True
+
+        system.paused = False
+        assert system.paused is False

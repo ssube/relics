@@ -123,14 +123,13 @@ def register_prefabs(world: World) -> None:
         },
     )
 
-    # Camera prefab
+    # Camera prefab - no Velocity needed, CameraSystem moves Position directly
     world.register_prefab(
         ENTITY_CAMERA,
         {
             Position: Position(x=0, y=0),
-            Velocity: Velocity(vx=0, vy=0),
             BoundingBox: BoundingBox(width=CAMERA_SIZE, height=CAMERA_SIZE),
-            Viewport: Viewport(width=SCREEN_WIDTH, height=SCREEN_HEIGHT),
+            Viewport: Viewport(width=SCREEN_WIDTH, height=SCREEN_HEIGHT, x=0, y=0),
             CameraInput: CameraInput(),
             GameStats: GameStats(),
         },
@@ -267,9 +266,12 @@ def spawn_initial_entities(world: World) -> None:
         world.spawn(ENTITY_RABBIT, {Position: Position(x=pos[0], y=pos[1])})
 
     # Spawn camera entity at center of world
-    center_x = (WORLD_WIDTH - CAMERA_SIZE) / 2
-    center_y = (WORLD_HEIGHT - CAMERA_SIZE) / 2
-    world.spawn(ENTITY_CAMERA, {Position: Position(x=center_x, y=center_y)})
+    center_x = (WORLD_WIDTH - SCREEN_WIDTH) / 2
+    center_y = (WORLD_HEIGHT - SCREEN_HEIGHT) / 2
+    world.spawn(ENTITY_CAMERA, {
+        Position: Position(x=center_x, y=center_y),
+        Viewport: Viewport(width=SCREEN_WIDTH, height=SCREEN_HEIGHT, x=center_x, y=center_y),
+    })
 
     print(f"Spawned: {rabbit_count} rabbits, {fox_count} foxes, "
           f"{tree_count} trees, {stone_count} stones, {flower_count} flowers")

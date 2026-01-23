@@ -96,23 +96,44 @@ class Color(Component):
 
 @dataclass
 class Viewport(Component):
-    """Camera viewport configuration."""
+    """Camera viewport with position and dimensions.
+
+    The viewport represents a camera in world coordinates, tracking
+    the top-left corner position and the dimensions of the visible area.
+    """
 
     width: int
     height: int
+    x: float = 0.0
+    y: float = 0.0
 
 
 @dataclass
 class CameraInput(Component):
-    """Buffered input for camera movement."""
+    """Buffered input for camera movement with edge detection.
 
+    The _prev_* fields track the previous frame's state to enable
+    edge detection (pressed/released transitions).
+    """
+
+    # Movement inputs (continuous)
     move_left: bool = False
     move_right: bool = False
     move_up: bool = False
     move_down: bool = False
     sprint: bool = False  # Shift key for 2x speed
-    pause: bool = False  # Toggle pause with spacebar
-    quit: bool = False  # Quit signal
+
+    # Button inputs (level)
+    pause: bool = False  # Current pause key state
+    quit: bool = False  # Current quit key state
+
+    # Edge detection (set by input system)
+    pause_pressed: bool = False  # True only on frame pause transitions to pressed
+    quit_pressed: bool = False  # True only on frame quit transitions to pressed
+
+    # Previous frame state (internal, used for edge detection)
+    _prev_pause: bool = False
+    _prev_quit: bool = False
 
 
 @dataclass

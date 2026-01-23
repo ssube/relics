@@ -123,14 +123,33 @@ class System(ABC):
     Optional overrides:
     - deps(): Declare execution order dependencies
     - frequency(): Control execution frequency
+    - group: Override to assign system to a group for selective execution
+
+    Attributes:
+        group: The group this system belongs to (default "default").
+        paused: If True, this system will be skipped during tick execution.
     """
 
     WILDCARD: ClassVar[Type["System"]] = _WildcardSentinel  # type: ignore[assignment]
+
+    #: Default group for systems that don't override
+    group: str = "default"
 
     def __init__(self) -> None:
         """Initialize the system."""
         self._world: "World" | None = None
         self._frequency: Frequency | None = None
+        self._paused: bool = False
+
+    @property
+    def paused(self) -> bool:
+        """Whether this system is paused and should be skipped during tick."""
+        return self._paused
+
+    @paused.setter
+    def paused(self, value: bool) -> None:
+        """Set the paused state of this system."""
+        self._paused = value
 
     @property
     def world(self) -> "World":
@@ -231,6 +250,10 @@ class System(ABC):
         Returns:
             True if the system should run.
         """
+        # Skip if paused
+        if self._paused:
+            return False
+
         if self._frequency is None:
             self._frequency = self.frequency()
         return self._frequency.should_run(epoch, delta)

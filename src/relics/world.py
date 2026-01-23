@@ -604,11 +604,25 @@ class World:
         observer.world = self
         self._observers.append(observer)
 
-    def tick(self, delta: float) -> None:
+    def tick(
+        self,
+        delta: float,
+        *,
+        include_groups: list[str] | None = None,
+        exclude_groups: list[str] | None = None,
+    ) -> None:
         """Advance epoch, run systems, process observer queue.
 
         Args:
             delta: Time elapsed since last tick in seconds.
+            include_groups: If specified, only run systems in these groups.
+            exclude_groups: If specified, skip systems in these groups.
+
+        Note:
+            Group filtering is applied in addition to the system's own
+            paused state and frequency checks. If both include_groups and
+            exclude_groups are specified, a system must be in include_groups
+            AND not in exclude_groups to run.
         """
         self._epoch += 1
 
@@ -616,8 +630,18 @@ class World:
         if not self._systems_sorted:
             self._resolve_system_order()
 
+        # Convert to sets for O(1) lookup
+        include_set = set(include_groups) if include_groups else None
+        exclude_set = set(exclude_groups) if exclude_groups else None
+
         # Run systems in order
         for system in self._systems:
+            # Check group filtering
+            if include_set is not None and system.group not in include_set:
+                continue
+            if exclude_set is not None and system.group in exclude_set:
+                continue
+
             if system._should_run(self._epoch, delta):
                 system._execute(delta)
 

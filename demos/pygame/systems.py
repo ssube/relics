@@ -8,7 +8,7 @@ import pygame
 
 from relics import Frequency, RunOrder, System, World
 
-from demos.pygame.camera import Camera
+from demos.pygame.camera import clamp_to_world, is_visible, world_to_screen
 from demos.pygame.components import (
     BoundingBox,
     CameraInput,
@@ -41,6 +41,57 @@ from demos.pygame.config import (
 )
 
 
+# =============================================================================
+# Input System (group: "input" - always runs)
+# =============================================================================
+
+
+class InputSystem(System):
+    """
+    Input system - reads pygame input and buffers it on camera entity.
+
+    This is a real ECS system that runs in the "input" group, which
+    continues to run even when the game is paused.
+    """
+
+    group = "input"
+
+    def query(self):
+        return self.q.with_all([Viewport, CameraInput])
+
+    def deps(self):
+        # Input runs first, before all other systems
+        return {RunOrder.BEFORE: [System.WILDCARD]}
+
+    def process(self, entities, components, delta):
+        """Read input and update camera's CameraInput component with edge detection."""
+        keys = pygame.key.get_pressed()
+
+        for entity in entities:
+            camera_input = entity.get_component(CameraInput)
+
+            # Store previous state for edge detection
+            prev_pause = camera_input.pause
+            prev_quit = camera_input.quit
+
+            # Update current state
+            camera_input.move_left = keys[pygame.K_a]
+            camera_input.move_right = keys[pygame.K_d]
+            camera_input.move_up = keys[pygame.K_w]
+            camera_input.move_down = keys[pygame.K_s]
+            camera_input.sprint = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+            camera_input.pause = keys[pygame.K_SPACE]
+            camera_input.quit = keys[pygame.K_ESCAPE]
+
+            # Edge detection: pressed this frame (rising edge)
+            camera_input.pause_pressed = camera_input.pause and not prev_pause
+            camera_input.quit_pressed = camera_input.quit and not prev_quit
+
+            # Store previous state for next frame
+            camera_input._prev_pause = prev_pause
+            camera_input._prev_quit = prev_quit
+
+
 def distance(x1: float, y1: float, x2: float, y2: float) -> float:
     """Calculate Euclidean distance between two points."""
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
@@ -54,6 +105,11 @@ def normalize(vx: float, vy: float) -> tuple[float, float]:
     return vx / mag, vy / mag
 
 
+# =============================================================================
+# Game Systems (group: "game" - paused when game is paused)
+# =============================================================================
+
+
 class RabbitAISystem(System):
     """
     Rabbit AI system - handles flee/seek behavior.
@@ -62,6 +118,8 @@ class RabbitAISystem(System):
     Priority 2: If flower exists -> seek nearest flower
     Else: idle (slow down)
     """
+
+    group = "game"
 
     def query(self):
         return self.q.with_all([Position, RabbitAI, Velocity])
@@ -144,6 +202,8 @@ class FoxAISystem(System):
     Always chases the nearest rabbit within sight range.
     """
 
+    group = "game"
+
     def query(self):
         return self.q.with_all([Position, FoxAI, Velocity])
 
@@ -198,44 +258,62 @@ class FoxAISystem(System):
 
 class CameraSystem(System):
     """
-    Camera system - converts input to movement.
+    Camera system - converts input to camera movement.
 
     Takes input from Camera entity's CameraInput component
-    and applies it to the Velocity component.
+    and applies it to the Position component directly.
+    Also syncs the Position to the Viewport component.
+    Runs in the "camera" group so it continues when game is paused.
     """
 
+    group = "camera"
+
     def query(self):
-        return self.q.with_all([Viewport, CameraInput, Velocity])
+        return self.q.with_all([Viewport, CameraInput, Position])
 
     def deps(self):
-        return {RunOrder.AFTER: [RabbitAISystem, FoxAISystem]}
+        return {RunOrder.AFTER: [InputSystem]}
 
     def process(self, entities, components, delta):
         for camera in entities:
             camera_input = camera.get_component(CameraInput)
-            vel = camera.get_component(Velocity)
+            pos = camera.get_component(Position)
+            viewport = camera.get_component(Viewport)
 
             # Apply sprint multiplier
             speed = CAMERA_SPEED * 2 if camera_input.sprint else CAMERA_SPEED
 
-            # Convert input to velocity
-            vel.vx = 0
-            vel.vy = 0
+            # Calculate movement
+            dx = 0.0
+            dy = 0.0
 
             if camera_input.move_left:
-                vel.vx -= speed
+                dx -= speed
             if camera_input.move_right:
-                vel.vx += speed
+                dx += speed
             if camera_input.move_up:
-                vel.vy -= speed
+                dy -= speed
             if camera_input.move_down:
-                vel.vy += speed
+                dy += speed
 
             # Normalize diagonal movement
-            if vel.vx != 0 and vel.vy != 0:
-                norm_x, norm_y = normalize(vel.vx, vel.vy)
-                vel.vx = norm_x * speed
-                vel.vy = norm_y * speed
+            if dx != 0 and dy != 0:
+                norm_x, norm_y = normalize(dx, dy)
+                dx = norm_x * speed
+                dy = norm_y * speed
+
+            # Apply movement to position
+            pos.x += dx * delta
+            pos.y += dy * delta
+
+            # Sync position to viewport and clamp to world bounds
+            viewport.x = pos.x
+            viewport.y = pos.y
+            clamp_to_world(viewport)
+
+            # Sync clamped position back to Position component
+            pos.x = viewport.x
+            pos.y = viewport.y
 
 
 class MovementSystem(System):
@@ -245,11 +323,13 @@ class MovementSystem(System):
     Runs after AI systems to apply calculated velocities.
     """
 
+    group = "game"
+
     def query(self):
         return self.q.with_all([Position, Velocity])
 
     def deps(self):
-        return {RunOrder.AFTER: [RabbitAISystem, FoxAISystem, CameraSystem]}
+        return {RunOrder.AFTER: [RabbitAISystem, FoxAISystem]}
 
     def process(self, entities, components, delta):
         for entity in entities:
@@ -267,6 +347,8 @@ class BoundsSystem(System):
     Runs after MovementSystem to clamp positions.
     """
 
+    group = "game"
+
     def query(self):
         return self.q.with_all([Position, BoundingBox])
 
@@ -275,17 +357,15 @@ class BoundsSystem(System):
 
     def process(self, entities, components, delta):
         for entity in entities:
+            # Skip camera entities - they handle their own bounds via CameraSystem
+            if entity.has_component(Viewport):
+                continue
+
             pos = entity.get_component(Position)
             bbox = entity.get_component(BoundingBox)
 
-            # Special handling for camera - use viewport size for bounds
-            if entity.has_component(Viewport):
-                viewport = entity.get_component(Viewport)
-                max_x = WORLD_WIDTH - viewport.width
-                max_y = WORLD_HEIGHT - viewport.height
-            else:
-                max_x = WORLD_WIDTH - bbox.width
-                max_y = WORLD_HEIGHT - bbox.height
+            max_x = WORLD_WIDTH - bbox.width
+            max_y = WORLD_HEIGHT - bbox.height
 
             # Clamp position and zero velocity if hitting bounds
             old_x, old_y = pos.x, pos.y
@@ -310,6 +390,8 @@ class CollisionSystem(System):
     - Mobile entities vs obstacles (trees/stones): push out of collision
     - Rabbit-Rabbit: separate overlapping rabbits
     """
+
+    group = "game"
 
     def query(self):
         return self.q.with_all([Position, BoundingBox])
@@ -516,43 +598,63 @@ class CollisionSystem(System):
         })
 
 
-class RenderSystem:
+# =============================================================================
+# Render System (group: "render" - always runs)
+# =============================================================================
+
+
+class RenderSystem(System):
     """
     Render system - draws entities to screen.
 
-    This is not a standard ECS system because it needs direct
-    access to pygame's screen surface and the camera.
+    This is a real ECS system that runs in the "render" group, which
+    continues to run even when the game is paused.
+
+    Note: The screen surface is set via set_screen() after system registration
+    because System instances are created before pygame is initialized.
     """
 
-    def __init__(self, screen: pygame.Surface, camera: Camera, world: World):
-        self.screen = screen
-        self.camera = camera
-        self.world = world
+    group = "render"
 
-    def render(self) -> None:
+    def __init__(self):
+        super().__init__()
+        self._screen: Optional[pygame.Surface] = None
+
+    def set_screen(self, screen: pygame.Surface) -> None:
+        """Set the pygame screen surface for rendering.
+
+        Args:
+            screen: The pygame display surface to render to.
+        """
+        self._screen = screen
+
+    def query(self):
+        return self.q.with_all([Position, Sprite, BoundingBox])
+
+    def deps(self):
+        # Render runs last, after all other systems
+        return {RunOrder.AFTER: [System.WILDCARD]}
+
+    def process(self, entities, components, delta):
         """Render all visible entities."""
-        # Get all cameras in the world
-        cameras = self.world.query().with_all([CameraInput, Viewport]).execute_entities()
-        if not cameras:
+        if self._screen is None:
+            return
+
+        # Get viewport from camera entity
+        viewport = None
+        for cam in self.world.query().with_all([Viewport, CameraInput]).execute_entities():
+            viewport = cam.get_component(Viewport)
+            break
+
+        if viewport is None:
             return  # No camera to render from
 
         # Fill background with grass color
-        self.screen.fill(COLORS["GRASS"])
+        self._screen.fill(COLORS["GRASS"])
 
-        # Update camera position from camera entity
-        for entity in self.world.query().with_all([Viewport, Position]).execute_entities():
-            pos = entity.get_component(Position)
-            viewport = entity.get_component(Viewport)
-            self.camera.width = viewport.width
-            self.camera.height = viewport.height
-            self.camera.x = pos.x
-            self.camera.y = pos.y
-            self.camera.clamp_to_world()
-            break
-
-        # Query all renderable entities
+        # Query all renderable entities and build render list
         renderables: list[tuple[Position, Sprite, BoundingBox, tuple[int, int, int]]] = []
-        for entity in self.world.query().with_all([Position, Sprite, BoundingBox]).execute_entities():
+        for entity in entities:
             # Skip camera entity
             if entity.has_component(Viewport):
                 continue
@@ -569,45 +671,17 @@ class RenderSystem:
                 color = COLORS.get(sprite.entity_type.upper(), (255, 0, 255))
 
             # Frustum culling - only render visible entities
-            if self.camera.is_visible(pos.x, pos.y, bbox.width, bbox.height):
+            if is_visible(viewport, pos.x, pos.y, bbox.width, bbox.height):
                 renderables.append((pos, sprite, bbox, color))
 
-        # Sort by entity type for consistent layering (trees behind animals)
+        # Sort by sprite layer for consistent layering (lower layers render first)
         renderables.sort(key=lambda r: r[1].layer, reverse=False)
 
         # Draw entities
         for pos, sprite, bbox, color in renderables:
-            screen_x, screen_y = self.camera.world_to_screen(pos.x, pos.y)
+            screen_x, screen_y = world_to_screen(viewport, pos.x, pos.y)
             pygame.draw.rect(
-                self.screen,
+                self._screen,
                 color,
                 (int(screen_x), int(screen_y), bbox.width, bbox.height)
             )
-
-
-class InputSystem:
-    """
-    Input system - reads pygame input and buffers it on camera entity.
-
-    This is not a standard ECS system because it needs direct
-    access to pygame's input state.
-    """
-
-    def __init__(self, world: World):
-        self.world = world
-
-    def update(self) -> None:
-        """Read input and update camera's CameraInput component."""
-        keys = pygame.key.get_pressed()
-
-        for entity in self.world.query().with_all([Viewport, CameraInput]).execute_entities():
-            camera_input = entity.get_component(CameraInput)
-
-            camera_input.move_left = keys[pygame.K_a]
-            camera_input.move_right = keys[pygame.K_d]
-            camera_input.move_up = keys[pygame.K_w]
-            camera_input.move_down = keys[pygame.K_s]
-            camera_input.sprint = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
-            camera_input.pause = keys[pygame.K_SPACE]
-            camera_input.quit = keys[pygame.K_ESCAPE]
-            break

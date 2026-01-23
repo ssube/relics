@@ -7,12 +7,11 @@ Run with: python -m demo.main
 import sys
 
 import pygame
-from pygame.locals import K_ESCAPE, K_SPACE, KEYDOWN, QUIT
+from pygame.locals import QUIT
 
-from demos.pygame.components import CameraInput
+from demos.pygame.components import CameraInput, Viewport
 from relics import World
 
-from demos.pygame.camera import Camera
 from demos.pygame.config import SCREEN_HEIGHT, SCREEN_WIDTH, TARGET_FPS
 from demos.pygame.prefabs import register_prefabs, spawn_initial_entities
 from demos.pygame.systems import (
@@ -108,21 +107,29 @@ def main() -> None:
     world = World()
     register_prefabs(world)
 
-    # Register ECS systems
+    # Create and register all ECS systems
+    # Input system (runs in "input" group - always active)
+    input_system = InputSystem()
+    world.register_system(input_system)
+
+    # Camera system (runs in "camera" group - always active)
+    camera_system = CameraSystem()
+    world.register_system(camera_system)
+
+    # Game systems (run in "game" group - paused when game is paused)
     world.register_system(RabbitAISystem())
     world.register_system(FoxAISystem())
-    world.register_system(CameraSystem())
     world.register_system(MovementSystem())
     world.register_system(BoundsSystem())
     world.register_system(CollisionSystem())
 
+    # Render system (runs in "render" group - always active)
+    render_system = RenderSystem()
+    render_system.set_screen(screen)
+    world.register_system(render_system)
+
     # Spawn initial entities
     spawn_initial_entities(world)
-
-    # Create non-ECS systems that need pygame access
-    camera = Camera(width=SCREEN_WIDTH, height=SCREEN_HEIGHT)
-    input_system = InputSystem(world)
-    render_system = RenderSystem(screen, camera, world)
 
     # Game state
     running = True
@@ -136,31 +143,39 @@ def main() -> None:
         delta = clock.tick(TARGET_FPS) / 1000.0
         fps = clock.get_fps()
 
-        # Handle events
+        # Handle pygame events (window close, etc.)
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
 
-        # Update input (always, even when paused for responsiveness)
-        input_system.update()
-
-        # Update simulation (only when not paused)
-        if not paused:
+        # Run world tick with appropriate group filtering
+        # When paused, exclude "game" group but still run input/camera/render
+        if paused:
+            world.tick(delta, exclude_groups=["game"])
+        else:
             world.tick(delta)
 
-        # Check the camera input component for the pause/quit signals
-        for entity in world.query().with_all([CameraInput]).execute_entities():
+        # Check the camera input component for edge-detected pause/quit signals
+        for entity in world.query().with_all([CameraInput, Viewport]).execute_entities():
             camera_input = entity.get_component(CameraInput)
-            if camera_input.quit:
+
+            # Use edge-detected signals (only true on the frame the key was pressed)
+            if camera_input.quit_pressed:
                 running = False
-            if camera_input.pause:
+
+            if camera_input.pause_pressed:
                 paused = not paused
+                if paused:
+                    print("Game paused")
+                else:
+                    print("Game resumed")
+
             break
 
-        # Render
-        render_system.render()
+        # Draw HUD on top of rendered scene
         draw_hud(screen, world, fps)
 
+        # Draw pause overlay if paused
         if paused:
             draw_pause_overlay(screen)
 
