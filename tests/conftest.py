@@ -7,6 +7,25 @@ from pydantic.dataclasses import dataclass
 from relics import Component, Edge, World
 
 # =============================================================================
+# Optional Dependency Handling
+# =============================================================================
+
+# Skip addon tests if their optional dependencies are not installed.
+# This prevents ImportError during test collection.
+
+collect_ignore_glob = []
+
+try:
+    import prometheus_client  # noqa: F401
+except ImportError:
+    collect_ignore_glob.append("addons/prometheus/test_*.py")
+
+try:
+    import websockets  # noqa: F401
+except ImportError:
+    collect_ignore_glob.append("addons/websocket/test_*.py")
+
+# =============================================================================
 # Reusable Components
 # =============================================================================
 
