@@ -15,6 +15,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
     "flake8",
     "black",
     "isort",
@@ -22,6 +24,15 @@ dev = [
 ]
 demo = [
     "pygame-ce>=2.5.0",
+]
+metrics = [
+    "prometheus-client>=0.20.0",
+]
+websocket = [
+    "websockets>=12.0",
+]
+all = [
+    "relics[dev,demo,metrics,websocket]",
 ]
 
 [tool.setuptools.packages.find]
