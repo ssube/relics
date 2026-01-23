@@ -4,6 +4,8 @@ A Python ECS (Entity-Component-System) framework with graph database semantics.
 
 *A relic is a snapshot of a world at a particular epoch.*
 
+![Relics Logo](docs/logo.png)
+
 ## Overview
 
 Relics is an engine-agnostic ECS framework that treats relationships as first-class citizens. It provides:
