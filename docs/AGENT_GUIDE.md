@@ -26,7 +26,7 @@ from relics import (
     OnComponentAdded, OnComponentRemoved, OnComponentChanged,
     OnRelationshipAdded, OnRelationshipRemoved, OnCustomEvent,
     ComponentObserver, RelationshipObserver, EntityObserver,
-    monitored, is_monitored,
+    monitored, monitored_component, is_monitored,  # monitored_component is recommended
     IndexView, LazyIndex, MaterializedIndex,
 )
 
@@ -59,6 +59,18 @@ from relics.addons.procedural_prefabs import (
     get_children, get_holder, get_root,
     destroy_with_children,
     register_edge_type, create_edge,
+)
+
+# Prometheus metrics addon
+from relics.addons.prometheus import (
+    WorldMetricsCollector, MetricsServer,
+    get_metrics_text, get_content_type,
+)
+
+# WebSocket sync addon
+from relics.addons.websocket import (
+    WebSocketServerDriver, WebSocketClientDriver,
+    ConnectionState, WebSocketError,
 )
 ```
 
@@ -358,16 +370,29 @@ class EntityObserver(Observer):
 
 ### Monitored Components
 
-The `@monitored` decorator enables change tracking on component classes.
+The `@monitored_component` combined decorator (recommended) or `@monitored` decorator enables change tracking on component classes.
 
 ```python
 # src/relics/monitored.py
-from relics import monitored, is_monitored, Component
+from relics import monitored, monitored_component, is_monitored, Component
 import pydantic
 
+# RECOMMENDED: Combined decorator (handles ordering automatically)
+@monitored_component
+class Health(Component):
+    current: int
+    maximum: int
+
+# ALTERNATIVE: Separate decorators (both orders work)
 @monitored
 @pydantic.dataclasses.dataclass
-class Health(Component):
+class Mana(Component):
+    current: int
+    maximum: int
+
+@pydantic.dataclasses.dataclass
+@monitored
+class Stamina(Component):  # Order-independent
     current: int
     maximum: int
 
@@ -503,6 +528,7 @@ ai_system.paused = False
 | **Observer method** | Use `world.observe(observer)` not `register_observer` |
 | **System groups** | Default group is `"default"`. Use `include_groups`/`exclude_groups` in `tick()` to filter |
 | **Paused vs groups** | `paused` property is per-system; group filtering applies to categories of systems |
+| **Monitored decorator** | Use `@monitored_component` (recommended) or `@monitored` + `@dataclass` (any order) |
 
 ---
 
@@ -1271,6 +1297,118 @@ print(f"Destroyed {count} entities")
 
 ---
 
+## Prometheus Metrics Addon (`relics.addons.prometheus`)
+
+Prometheus-compatible metrics for monitoring Relics worlds in production.
+
+### Core API
+
+```python
+# src/relics/addons/prometheus/
+from relics.addons.prometheus import (
+    WorldMetricsCollector, MetricsServer,
+    get_metrics_text, get_content_type,
+)
+
+# Create collector and server
+collector = WorldMetricsCollector(world, world_id="game_server")
+server = MetricsServer(port=8000)
+server.start()
+
+# Game loop with metrics
+while running:
+    world.tick(0.016)
+    collector.collect()  # Update metrics
+
+server.stop()
+
+# Auto-collection mode
+collector = WorldMetricsCollector(
+    world,
+    world_id="game_server",
+    collect_on_tick=True,  # Auto-collect each tick
+)
+```
+
+### Exposed Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `relics_entities_total` | Gauge | Total entity count |
+| `relics_systems_total` | Gauge | Registered system count |
+| `relics_system_execution_seconds` | Histogram | System execution time |
+| `relics_observers_total` | Gauge | Registered observer count |
+| `relics_relationships_total` | Gauge | Total relationship count |
+| `relics_tick_duration_seconds` | Histogram | World tick duration |
+
+---
+
+## WebSocket Sync Addon (`relics.addons.websocket`)
+
+Real-time multiplayer synchronization over WebSocket.
+
+### Server Setup
+
+```python
+# src/relics/addons/websocket/
+from relics.addons.websocket import WebSocketServerDriver
+
+async def main():
+    world = World()
+    server = WebSocketServerDriver(
+        host="localhost",
+        port=8765,
+        component_whitelist={InputState},  # Accept from clients
+    )
+    server.attach(world)
+    await server.start()
+
+    while running:
+        await server.process_messages()
+        world.tick(0.016)
+        await server.broadcast_changes()
+
+    await server.stop()
+```
+
+### Client Setup
+
+```python
+from relics.addons.websocket import WebSocketClientDriver
+
+async def main():
+    world = World()
+    client = WebSocketClientDriver(
+        uri="ws://localhost:8765",
+        client_id="player_1",
+        component_whitelist={InputState},
+    )
+    client.attach(world)
+    await client.connect()
+    await client.sync()
+
+    while running:
+        await client.process_messages(timeout=0.016)
+        world.tick(0.016)
+
+    await client.disconnect()
+```
+
+### Connection States
+
+```python
+from relics.addons.websocket import ConnectionState
+
+ConnectionState.DISCONNECTED    # Not connected
+ConnectionState.CONNECTING      # Connection in progress
+ConnectionState.HANDSHAKING     # Performing handshake
+ConnectionState.SYNCING         # Synchronizing world state
+ConnectionState.CONNECTED       # Fully connected and synced
+ConnectionState.DISCONNECTING   # Disconnect in progress
+```
+
+---
+
 ## File Reference Index
 
 ### Core Library
@@ -1332,11 +1470,31 @@ print(f"Destroyed {count} entities")
 | Exceptions | `src/relics/addons/procedural_prefabs/exceptions.py` |
 | Exports | `src/relics/addons/procedural_prefabs/__init__.py` |
 
+### Prometheus Addon
+
+| Module | Path |
+|--------|------|
+| Collector | `src/relics/addons/prometheus/collector.py` |
+| Server | `src/relics/addons/prometheus/server.py` |
+| Exports | `src/relics/addons/prometheus/__init__.py` |
+| README | `src/relics/addons/prometheus/README.md` |
+
+### WebSocket Addon
+
+| Module | Path |
+|--------|------|
+| Server Driver | `src/relics/addons/websocket/server.py` |
+| Client Driver | `src/relics/addons/websocket/client.py` |
+| Protocol | `src/relics/addons/websocket/protocol.py` |
+| Exports | `src/relics/addons/websocket/__init__.py` |
+| README | `src/relics/addons/websocket/README.md` |
+
 ### Test Files
 
 | Area | Path |
 |------|------|
 | Core tests | `tests/test_*.py` |
+| Documentation examples | `tests/test_documentation_examples.py` |
 | Spatial tests | `tests/addons/spatial/` |
 | Tile Grid tests | `tests/addons/tilegrid/` |
 | Procedural tests | `tests/addons/procedural_prefabs/` |
@@ -1353,7 +1511,7 @@ print(f"Destroyed {count} entities")
 
 ```python
 import pydantic
-from relics import World, Component, monitored
+from relics import World, Component, monitored_component
 from relics.addons.spatial import (
     Position2D, create_spatial_index_2d, distance_2d
 )
@@ -1363,8 +1521,7 @@ from relics.addons.procedural_prefabs import (
 )
 
 # Define components
-@monitored
-@pydantic.dataclasses.dataclass
+@monitored_component
 class Health(Component):
     current: int
     maximum: int

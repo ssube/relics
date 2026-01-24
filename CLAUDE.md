@@ -231,6 +231,22 @@ def method(self, arg: Type) -> ReturnType:
     """
 ```
 
+## Available Addons
+
+Each addon has its own README with detailed API documentation:
+
+| Addon | Path | Description |
+|-------|------|-------------|
+| Spatial | `src/relics/addons/spatial/` | 2D/3D spatial queries with quadtree/octree |
+| Tile Grid | `src/relics/addons/tilegrid/` | Chunked tile-based world management |
+| Procedural Prefabs | `src/relics/addons/procedural_prefabs/` | Graph-based entity generation |
+| Prometheus | `src/relics/addons/prometheus/` | Metrics and monitoring |
+| WebSocket | `src/relics/addons/websocket/` | Real-time multiplayer synchronization |
+
+## Documentation Tests
+
+All documentation examples have corresponding test cases in `tests/test_documentation_examples.py`. When updating documentation examples, ensure the corresponding tests are updated or added.
+
 ## Known Quirks
 
 1. **Component sharing**: Without `@monitored`, prefab components are shared between entities (same instance). With `@monitored`, components are deep copied during spawn.
