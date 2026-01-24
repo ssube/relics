@@ -369,6 +369,30 @@ assert entity1.get_component(SharedMeshData) is entity2.get_component(SharedMesh
 
 **Note:** `@shared_component` and `@monitored` are mutually exclusive. A component cannot be both shared and monitored because monitored components need unique instances for change tracking.
 
+### Temporary Components
+
+Use `@temporary_component` to mark components that should not be persisted (saved/loaded). This is useful for runtime state that doesn't need to survive a save/load cycle:
+
+```python
+from relics import temporary_component
+
+@temporary_component
+@dataclass
+class InputState(Component):
+    keys_pressed: List[str]  # Runtime state, not saved
+
+@temporary_component
+@shared_component
+@dataclass
+class CachedRenderData(Component):
+    texture_id: int  # Shared runtime cache, not saved
+```
+
+Temporary components:
+- Are skipped during `save()` operations
+- Will not be present after `load()`
+- Can be combined with `@shared_component` or `@monitored`
+
 ### Secondary Indexes
 
 Create indexes for efficient entity lookups:

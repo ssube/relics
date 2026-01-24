@@ -1,4 +1,9 @@
-"""@shared_component decorator for opting out of deep copy during spawn."""
+"""Component decorators for controlling spawn and persistence behavior.
+
+This module provides:
+- @shared_component: Opt out of deep copy during spawn
+- @temporary_component: Opt out of persistence (not saved/loaded)
+"""
 
 import copy
 from typing import Any, Type, TypeVar
@@ -6,6 +11,49 @@ from typing import Any, Type, TypeVar
 from relics.types import Component
 
 T = TypeVar("T")
+
+
+def temporary_component(cls: Type[T]) -> Type[T]:
+    """Mark a component as temporary (not persisted).
+
+    Use this decorator on components that should not be saved to disk.
+    Temporary components are skipped during world serialization and will
+    not be present when the world is loaded back.
+
+    This decorator can be combined with @shared_component or @monitored.
+
+    Example:
+        @temporary_component
+        @dataclass
+        class InputState(Component):
+            keys_pressed: List[str]  # Runtime state, not saved
+
+        @temporary_component
+        @shared_component
+        @dataclass
+        class CachedTexture(Component):
+            texture_id: int  # Shared, not saved
+
+    Args:
+        cls: The component class to decorate.
+
+    Returns:
+        The decorated class marked as temporary.
+    """
+    cls._is_temporary = True  # type: ignore[attr-defined]
+    return cls
+
+
+def is_temporary(obj: Any) -> bool:
+    """Check if an object or class is marked as @temporary_component.
+
+    Args:
+        obj: The object or class to check.
+
+    Returns:
+        True if the object/class is marked as temporary.
+    """
+    return getattr(obj, "_is_temporary", False)
 
 
 def shared_component(cls: Type[T]) -> Type[T]:

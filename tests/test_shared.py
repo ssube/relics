@@ -1,4 +1,4 @@
-"""Tests for @shared_component decorator and component copying behavior."""
+"""Tests for @shared_component and @temporary_component decorators."""
 
 from dataclasses import dataclass
 
@@ -9,10 +9,13 @@ from relics import (
     World,
     copy_component,
     is_shared,
+    is_temporary,
     monitored,
     monitored_component,
     shared_component,
+    temporary_component,
 )
+from relics.persistence import InMemoryPersistenceDriver
 
 
 @dataclass
@@ -38,6 +41,35 @@ class MonitoredHealth(Component):
 
     current: int
     maximum: int
+
+
+@temporary_component
+@dataclass
+class TemporaryState(Component):
+    """A temporary component for testing."""
+
+    session_id: str
+    last_input: str
+
+
+@temporary_component
+@shared_component
+@dataclass
+class TemporarySharedCache(Component):
+    """A temporary and shared component for testing."""
+
+    cache_key: str
+    cache_data: list
+
+
+@temporary_component
+@monitored_component
+class TemporaryMonitoredInput(Component):
+    """A temporary and monitored component for testing."""
+
+    keys_pressed: list
+    mouse_x: int
+    mouse_y: int
 
 
 class TestIsShared:
@@ -308,3 +340,175 @@ class TestMixedPrefabs:
         reg1 = entity1.get_component(RegularComponent)
         reg2 = entity2.get_component(RegularComponent)
         assert reg1 is not reg2
+
+
+class TestIsTemporary:
+    """Tests for is_temporary function."""
+
+    def test_is_temporary_true_on_decorated_class(self) -> None:
+        """Test that is_temporary returns True for @temporary_component classes."""
+        assert is_temporary(TemporaryState) is True
+
+    def test_is_temporary_true_on_decorated_instance(self) -> None:
+        """Test that is_temporary returns True for @temporary_component instances."""
+        instance = TemporaryState(session_id="abc", last_input="enter")
+        assert is_temporary(instance) is True
+
+    def test_is_temporary_false_on_regular_class(self) -> None:
+        """Test that is_temporary returns False for regular component classes."""
+        assert is_temporary(RegularComponent) is False
+
+    def test_is_temporary_false_on_shared_class(self) -> None:
+        """Test that is_temporary returns False for @shared_component classes."""
+        assert is_temporary(SharedData) is False
+
+    def test_is_temporary_false_on_monitored_class(self) -> None:
+        """Test that is_temporary returns False for @monitored classes."""
+        assert is_temporary(MonitoredHealth) is False
+
+
+class TestTemporaryWithOtherDecorators:
+    """Tests for combining @temporary_component with other decorators."""
+
+    def test_temporary_with_shared(self) -> None:
+        """Test that @temporary_component can be combined with @shared_component."""
+        assert is_temporary(TemporarySharedCache) is True
+        assert is_shared(TemporarySharedCache) is True
+
+    def test_temporary_with_monitored(self) -> None:
+        """Test that @temporary_component can be combined with @monitored."""
+        assert is_temporary(TemporaryMonitoredInput) is True
+        # Monitored components still work
+        instance = TemporaryMonitoredInput(keys_pressed=[], mouse_x=0, mouse_y=0)
+        assert hasattr(instance, "_is_monitored")
+
+    def test_temporary_shared_spawn_behavior(self) -> None:
+        """Test that temporary+shared components share instances on spawn."""
+        world = World()
+        world.register_prefab(
+            "test",
+            {TemporarySharedCache: TemporarySharedCache(cache_key="k", cache_data=[])},
+        )
+
+        entity1 = world.spawn("test")
+        entity2 = world.spawn("test")
+
+        comp1 = entity1.get_component(TemporarySharedCache)
+        comp2 = entity2.get_component(TemporarySharedCache)
+
+        # Should be same instance (shared behavior)
+        assert comp1 is comp2
+
+
+class TestTemporaryPersistence:
+    """Tests for @temporary_component persistence behavior."""
+
+    def test_temporary_components_not_saved(self) -> None:
+        """Test that temporary components are not persisted."""
+        world = World()
+        world.register_prefab(
+            "test",
+            {
+                RegularComponent: RegularComponent(value=42, items=[1, 2]),
+                TemporaryState: TemporaryState(session_id="abc", last_input="x"),
+            },
+        )
+
+        entity = world.spawn("test")
+        world.tick(0)
+
+        # Verify entity has both components
+        assert entity.has_component(RegularComponent)
+        assert entity.has_component(TemporaryState)
+
+        # Save and load
+        driver = InMemoryPersistenceDriver()
+        driver.save(world, "test_save")
+
+        # Create new world and load
+        world2 = World()
+        world2.register_component_type(RegularComponent)
+        world2.register_component_type(TemporaryState)
+        driver.load(
+            world2,
+            "test_save",
+            component_registry={
+                "RegularComponent": RegularComponent,
+                "TemporaryState": TemporaryState,
+            },
+        )
+
+        # Get the loaded entity
+        loaded_entity = world2.get_entity(entity.id)
+
+        # Regular component should be restored
+        assert loaded_entity.has_component(RegularComponent)
+        regular = loaded_entity.get_component(RegularComponent)
+        assert regular.value == 42
+        assert regular.items == [1, 2]
+
+        # Temporary component should NOT be restored
+        assert not loaded_entity.has_component(TemporaryState)
+
+    def test_temporary_prefab_components_not_saved(self) -> None:
+        """Test that temporary components in prefabs are not persisted."""
+        from relics.prefab import prefab_to_dict
+
+        components = {
+            RegularComponent: RegularComponent(value=1, items=[]),
+            TemporaryState: TemporaryState(session_id="s", last_input=""),
+        }
+
+        result = prefab_to_dict("test", components)
+
+        # Only regular component should be in the output
+        assert "RegularComponent" in result["components"]
+        assert "TemporaryState" not in result["components"]
+
+    def test_save_load_with_mixed_components(self) -> None:
+        """Test save/load with regular, shared, monitored, and temporary components."""
+        world = World()
+        world.register_prefab(
+            "mixed",
+            {
+                RegularComponent: RegularComponent(value=1, items=["a"]),
+                SharedData: SharedData(data="shared", values=[1]),
+                MonitoredHealth: MonitoredHealth(current=50, maximum=100),
+                TemporaryState: TemporaryState(session_id="sess", last_input="key"),
+            },
+        )
+
+        entity = world.spawn("mixed")
+        world.tick(0)
+
+        # Save
+        driver = InMemoryPersistenceDriver()
+        driver.save(world, "mixed_save")
+
+        # Load into new world
+        world2 = World()
+        driver.load(
+            world2,
+            "mixed_save",
+            component_registry={
+                "RegularComponent": RegularComponent,
+                "SharedData": SharedData,
+                "MonitoredHealth": MonitoredHealth,
+                "TemporaryState": TemporaryState,
+            },
+        )
+
+        loaded = world2.get_entity(entity.id)
+
+        # Regular, shared, and monitored should be restored
+        assert loaded.has_component(RegularComponent)
+        assert loaded.has_component(SharedData)
+        assert loaded.has_component(MonitoredHealth)
+
+        # Temporary should NOT be restored
+        assert not loaded.has_component(TemporaryState)
+
+        # Verify values
+        assert loaded.get_component(RegularComponent).value == 1
+        assert loaded.get_component(SharedData).data == "shared"
+        assert loaded.get_component(MonitoredHealth).current == 50

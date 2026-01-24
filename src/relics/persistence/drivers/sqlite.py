@@ -23,6 +23,7 @@ from typing import (
 from relics.persistence.base import PersistenceDriver, RelicInfo
 from relics.persistence.serialization import _component_to_dict, _dict_to_component
 from relics.prefab import prefab_to_dict
+from relics.shared import is_temporary
 from relics.types import Component, Edge, EntityId
 
 if TYPE_CHECKING:
@@ -289,9 +290,12 @@ class SQLitePersistenceDriver(PersistenceDriver):
                 conn.execute(sql, (str(entity_id), entity_id.prefab, 0))
 
             # Create component tables and store data
+            # Skip @temporary_component types as they should not be persisted
             component_types_seen: Set[Type[Component]] = set()
             for entity_id, components in world._entities.items():
                 for comp_type, comp_instance in components.items():
+                    if is_temporary(comp_type):
+                        continue  # Skip temporary components
                     if comp_type not in component_types_seen:
                         self._create_component_table(conn, comp_type)
                         component_types_seen.add(comp_type)

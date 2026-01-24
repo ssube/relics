@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, cast
 from relics.persistence.base import PersistenceDriver, RelicInfo
 from relics.persistence.serialization import _component_to_dict, _dict_to_component
 from relics.prefab import prefab_to_dict
+from relics.shared import is_temporary
 from relics.types import Component, Edge, EntityId
 
 if TYPE_CHECKING:
@@ -64,9 +65,12 @@ class JSONPersistenceDriver(PersistenceDriver):
             }
 
         # Build components section (type-grouped)
+        # Skip @temporary_component types as they should not be persisted
         components_data: Dict[str, Dict[str, Dict[str, Any]]] = {}
         for entity_id, components in world._entities.items():
             for comp_type, comp_instance in components.items():
+                if is_temporary(comp_type):
+                    continue  # Skip temporary components
                 type_name = comp_type.__name__
                 if type_name not in components_data:
                     components_data[type_name] = {}

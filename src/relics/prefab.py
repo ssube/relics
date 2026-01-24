@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Type
 
 from relics.errors import PrefabNotFoundError
+from relics.shared import is_temporary
 from relics.types import Component
 
 if TYPE_CHECKING:
@@ -68,6 +69,8 @@ def prefab_to_dict(
 ) -> Dict[str, Any]:
     """Convert a prefab to a dictionary for JSON serialization.
 
+    Temporary components are skipped and will not be included in the output.
+
     Args:
         prefab_name: The name of the prefab.
         components: Dictionary mapping component types to instances.
@@ -78,6 +81,8 @@ def prefab_to_dict(
     components_data: Dict[str, Dict[str, Any]] = {}
 
     for comp_type, comp_instance in components.items():
+        if is_temporary(comp_type):
+            continue  # Skip temporary components
         # Extract field values from the component
         if hasattr(comp_instance, "__dataclass_fields__"):
             # Standard dataclass

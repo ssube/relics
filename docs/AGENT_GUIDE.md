@@ -28,6 +28,7 @@ from relics import (
     ComponentObserver, RelationshipObserver, EntityObserver,
     monitored, monitored_component, is_monitored,  # monitored_component is recommended
     shared_component, is_shared, copy_component,  # For opting out of deep copy
+    temporary_component, is_temporary,  # For opting out of persistence
     IndexView, LazyIndex, MaterializedIndex,
 )
 
@@ -443,6 +444,42 @@ copied = copy_component(component)  # Deep copy unless @shared_component
 - Mutually exclusive with `@monitored` - cannot use both
 - Use for large immutable data like mesh references, texture atlases
 
+### Temporary Components
+
+The `@temporary_component` decorator opts out of persistence. Temporary components are skipped during save/load.
+
+```python
+# src/relics/shared.py
+from relics import temporary_component, is_temporary
+
+@temporary_component
+@dataclass
+class InputState(Component):
+    keys_pressed: List[str]  # Runtime state, not saved
+    mouse_position: Tuple[int, int]
+
+# Can combine with other decorators
+@temporary_component
+@shared_component
+@dataclass
+class CachedRenderData(Component):
+    texture_id: int  # Shared + not saved
+
+@temporary_component
+@monitored_component
+class TemporaryTrackedState(Component):
+    value: int  # Tracked changes + not saved
+
+# Check if a component is temporary
+is_temporary(InputState)  # True
+```
+
+**Behavior:**
+- Skipped during `save()` operations (all persistence drivers)
+- Will not be present after `load()` - must be re-added at runtime
+- Can be combined with `@shared_component` or `@monitored`
+- Use for runtime-only state: input, caches, debug info
+
 ### Systems
 
 ```python
@@ -560,6 +597,7 @@ ai_system.paused = False
 | **Paused vs groups** | `paused` property is per-system; group filtering applies to categories of systems |
 | **Monitored decorator** | Use `@monitored_component` (recommended) or `@monitored` + `@dataclass` (any order) |
 | **Shared vs monitored** | `@shared_component` and `@monitored` are mutually exclusive |
+| **Temporary components** | `@temporary_component` skips persistence; can combine with `@shared_component` or `@monitored` |
 
 ---
 

@@ -26,9 +26,6 @@ from relics.index import IndexView, LazyIndex, MaterializedIndex
 # Monitored decorator
 from relics.monitored import is_monitored, monitored, monitored_component
 
-# Shared decorator
-from relics.shared import copy_component, is_shared, shared_component
-
 # Observers
 from relics.observer import (
     ComponentObserver,
@@ -69,6 +66,15 @@ from relics.prefab import (
 
 # Query system
 from relics.query import QueryBuilder
+
+# Shared and temporary decorators
+from relics.shared import (
+    copy_component,
+    is_shared,
+    is_temporary,
+    shared_component,
+    temporary_component,
+)
 
 # Systems
 from relics.system import Frequency, RunOrder, System
@@ -114,10 +120,12 @@ __all__ = [
     "is_monitored",
     "monitored",
     "monitored_component",
-    # Shared
+    # Shared and temporary
     "copy_component",
     "is_shared",
+    "is_temporary",
     "shared_component",
+    "temporary_component",
     # Indexes
     "IndexView",
     "LazyIndex",

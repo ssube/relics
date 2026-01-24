@@ -253,6 +253,8 @@ All documentation examples have corresponding test cases in `tests/test_document
 
 2. **`@shared_component` and `@monitored` are mutually exclusive**: A component cannot be both shared and monitored. Monitored components need unique instances for change tracking.
 
-3. **Observer registration order**: Events are queued during operations and processed during `tick()`. The order of observer registration affects callback order.
+3. **`@temporary_component` for runtime-only data**: Use `@temporary_component` to mark components that should not be persisted. These are skipped during save/load operations. Can be combined with `@shared_component` or `@monitored`.
 
-4. **Index lazy initialization**: Materialized indexes initialize lazily on first access, pulling current world state. Plan accordingly for observer registration timing.
+4. **Observer registration order**: Events are queued during operations and processed during `tick()`. The order of observer registration affects callback order.
+
+5. **Index lazy initialization**: Materialized indexes initialize lazily on first access, pulling current world state. Plan accordingly for observer registration timing.
