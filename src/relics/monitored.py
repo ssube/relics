@@ -136,7 +136,8 @@ def _apply_monitoring(cls: Type[T], field_names: Optional[Set[str]] = None) -> T
     cls._notify_change = MonitoredMixin._notify_change  # type: ignore
 
     # Override __setattr__ for change tracking
-    cls.__setattr__ = _create_monitored_setattr(field_names)  # type: ignore[method-assign]
+    setattr_func = _create_monitored_setattr(field_names)
+    cls.__setattr__ = setattr_func  # type: ignore[method-assign]
 
     return cls
 
@@ -218,7 +219,7 @@ def monitored_component(cls: Type[T]) -> Type[T]:
     cls = std_dataclass(cls)
 
     # Get field names from the dataclass
-    field_names = {f.name for f in fields(cls)}
+    field_names = {f.name for f in fields(cls)}  # type: ignore[arg-type]
 
     # Apply monitoring
     return _apply_monitoring(cls, field_names)

@@ -33,7 +33,6 @@ from relics import (
     OnEntityCreated,
     OnEntityDestroyed,
     OnRelationshipAdded,
-    OnRelationshipRemoved,
     QueryBuilder,
     RelationshipObserver,
     RelationshipValidationError,
@@ -44,7 +43,6 @@ from relics import (
     monitored,
 )
 from relics.types import EntityId
-
 
 # =============================================================================
 # Component Definitions (used across multiple tests)
@@ -328,9 +326,7 @@ class TestReadmeQuerySystem:
         assert allies_of_player[0].id == ally.id
 
         # Query entities with any alliance
-        with_allies = list(
-            world.query().with_relationship(AllyTo).execute_entities()
-        )
+        with_allies = list(world.query().with_relationship(AllyTo).execute_entities())
         assert len(with_allies) == 1
         assert with_allies[0].id == player.id
 
@@ -342,7 +338,7 @@ class TestReadmeQuerySystem:
             {Health: Health(current=100, maximum=100)},
         )
 
-        healthy = world.spawn("player")
+        world.spawn("player")  # healthy player (not used, just for filtering test)
         wounded = world.spawn("player", {Health: Health(current=15, maximum=100)})
 
         # Filter for low health
@@ -369,9 +365,7 @@ class TestReadmeQuerySystem:
 
         delta = 0.016
         query = (
-            world.query()
-            .with_all([Position, Velocity])
-            .iterate([Position, Velocity])
+            world.query().with_all([Position, Velocity]).iterate([Position, Velocity])
         )
 
         positions_updated = 0
@@ -409,7 +403,10 @@ class TestReadmeSystems:
                 return Frequency.EVERY_TICK
 
             def process(
-                self, entities: List[Entity], components: List[List[Component]], delta: float
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
             ) -> None:
                 execution_count[0] += 1
                 positions, velocities = components
@@ -510,7 +507,9 @@ class TestReadmeObservers:
             def on_component_added(self, entity: Entity, component: Component) -> None:
                 events.append(f"added:{entity.id}")
 
-            def on_component_removed(self, entity: Entity, component: Component) -> None:
+            def on_component_removed(
+                self, entity: Entity, component: Component
+            ) -> None:
                 events.append(f"removed:{entity.id}")
 
         world = World()
@@ -662,7 +661,7 @@ class TestReadmeChangeTracking:
     """Tests for README @monitored change tracking examples."""
 
     def test_monitored_decorator_order(self) -> None:
-        """Test README @monitored decorator order (critical: @monitored before @dataclass)."""
+        """Test README @monitored decorator order."""
         assert is_monitored(TrackedHealth) is True
 
         health = TrackedHealth(current=100, maximum=100)
@@ -1105,7 +1104,9 @@ class TestObserversDoc:
         class ShieldRemovedHandler(OnComponentRemoved):
             component_type = Shield
 
-            def on_component_removed(self, entity: Entity, component: Component) -> None:
+            def on_component_removed(
+                self, entity: Entity, component: Component
+            ) -> None:
                 removed.append(entity.id)
 
         world = World()
@@ -1338,7 +1339,10 @@ class TestCompleteExample:
                 )
 
             def process(
-                self, entities: List[Entity], components: List[List[Component]], delta: float
+                self,
+                entities: List[Entity],
+                components: List[List[Component]],
+                delta: float,
             ) -> None:
                 positions, velocities = components
                 for i in range(len(entities)):
@@ -1559,9 +1563,7 @@ class TestRelationshipsDoc:
         attacker.add_relationship(Targets(), defender.id)
 
         # Find entities that are targeting something
-        targeting = list(
-            world.query().with_relationship(Targets).execute_entities()
-        )
+        targeting = list(world.query().with_relationship(Targets).execute_entities())
         assert len(targeting) == 1
         assert targeting[0].id == attacker.id
 
@@ -1583,9 +1585,7 @@ class TestRelationshipsDoc:
         attacker.add_relationship(Targets(), defender.id)
 
         # Find entities being targeted
-        targeted = list(
-            world.query().with_incoming(Targets).execute_entities()
-        )
+        targeted = list(world.query().with_incoming(Targets).execute_entities())
         assert len(targeted) == 1
         assert targeted[0].id == defender.id
 
@@ -1612,9 +1612,7 @@ class TestRelationshipsDoc:
         )
 
         # Query entities with status effects
-        affected = list(
-            world.query().with_relationship(AffectedBy).execute_entities()
-        )
+        affected = list(world.query().with_relationship(AffectedBy).execute_entities())
         assert len(affected) == 1
         assert affected[0].id == player.id
 
