@@ -10,6 +10,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed
 
 from relics.persistence.serialization import _component_to_dict
+from relics.shared import copy_component
 from relics.types import Component, EntityId
 
 from .base import SyncDriver
@@ -603,18 +604,13 @@ class WebSocketClientDriver(SyncDriver):
 
         # Copy prefab components
         if prefab in self._world._prefabs:
-            import copy
-
             for comp_type, comp_instance in self._world._prefabs[prefab].items():
                 if comp_type in overrides:
                     components[comp_type] = overrides[comp_type]
-                elif (
-                    hasattr(comp_instance, "_is_monitored")
-                    and comp_instance._is_monitored
-                ):
-                    components[comp_type] = copy.copy(comp_instance)
                 else:
-                    components[comp_type] = comp_instance
+                    # Deep copy all components by default for independence.
+                    # Use @shared_component to opt out of copying.
+                    components[comp_type] = copy_component(comp_instance)
 
         # Apply overrides not in prefab
         for comp_type, comp_instance in overrides.items():

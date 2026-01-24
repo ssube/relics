@@ -26,6 +26,9 @@ from relics.index import IndexView, LazyIndex, MaterializedIndex
 # Monitored decorator
 from relics.monitored import is_monitored, monitored, monitored_component
 
+# Shared decorator
+from relics.shared import copy_component, is_shared, shared_component
+
 # Observers
 from relics.observer import (
     ComponentObserver,
@@ -111,6 +114,10 @@ __all__ = [
     "is_monitored",
     "monitored",
     "monitored_component",
+    # Shared
+    "copy_component",
+    "is_shared",
+    "shared_component",
     # Indexes
     "IndexView",
     "LazyIndex",

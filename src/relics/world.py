@@ -15,6 +15,7 @@ from relics.errors import (
     RelationshipValidationError,
     SystemDependencyCycleError,
 )
+from relics.shared import copy_component
 from relics.types import Component, CustomEvent, Edge, EntityId
 
 if TYPE_CHECKING:
@@ -172,17 +173,9 @@ class World:
             if overrides and comp_type in overrides:
                 components[comp_type] = overrides[comp_type]
             else:
-                # Deep copy monitored components since they need unique bindings
-                # per entity. Non-monitored components can share instances safely.
-                if (
-                    hasattr(comp_instance, "_is_monitored")
-                    and comp_instance._is_monitored
-                ):
-                    import copy
-
-                    components[comp_type] = copy.copy(comp_instance)
-                else:
-                    components[comp_type] = comp_instance
+                # Deep copy all components by default for independence.
+                # Use @shared_component to opt out of copying.
+                components[comp_type] = copy_component(comp_instance)
 
         # Apply any additional overrides not in prefab
         if overrides:

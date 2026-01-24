@@ -249,8 +249,10 @@ All documentation examples have corresponding test cases in `tests/test_document
 
 ## Known Quirks
 
-1. **Component sharing**: Without `@monitored`, prefab components are shared between entities (same instance). With `@monitored`, components are deep copied during spawn.
+1. **Component copying**: All prefab components are deep copied during spawn by default. Use `@shared_component` to opt out and share the same instance across entities. This is useful for large immutable data like mesh references.
 
-2. **Observer registration order**: Events are queued during operations and processed during `tick()`. The order of observer registration affects callback order.
+2. **`@shared_component` and `@monitored` are mutually exclusive**: A component cannot be both shared and monitored. Monitored components need unique instances for change tracking.
 
-3. **Index lazy initialization**: Materialized indexes initialize lazily on first access, pulling current world state. Plan accordingly for observer registration timing.
+3. **Observer registration order**: Events are queued during operations and processed during `tick()`. The order of observer registration affects callback order.
+
+4. **Index lazy initialization**: Materialized indexes initialize lazily on first access, pulling current world state. Plan accordingly for observer registration timing.

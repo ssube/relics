@@ -345,6 +345,30 @@ class HealthChangeObserver(OnComponentChanged):
                 print(f"Entity took {damage} damage!")
 ```
 
+### Shared Components
+
+By default, all prefab components are deep copied when spawning entities, ensuring each entity has independent data. Use `@shared_component` to opt out of copying for components that should share the same instance (useful for large immutable data like mesh references):
+
+```python
+from relics import shared_component
+
+@shared_component
+@dataclass
+class SharedMeshData(Component):
+    vertices: List[float]  # Large immutable data
+    indices: List[int]
+
+# Register prefab with shared component
+world.register_prefab("model", {SharedMeshData: SharedMeshData(vertices=[...], indices=[...])})
+
+# All spawned entities share the same SharedMeshData instance
+entity1 = world.spawn("model")
+entity2 = world.spawn("model")
+assert entity1.get_component(SharedMeshData) is entity2.get_component(SharedMeshData)  # True
+```
+
+**Note:** `@shared_component` and `@monitored` are mutually exclusive. A component cannot be both shared and monitored because monitored components need unique instances for change tracking.
+
 ### Secondary Indexes
 
 Create indexes for efficient entity lookups:

@@ -27,6 +27,7 @@ from relics import (
     OnRelationshipAdded, OnRelationshipRemoved, OnCustomEvent,
     ComponentObserver, RelationshipObserver, EntityObserver,
     monitored, monitored_component, is_monitored,  # monitored_component is recommended
+    shared_component, is_shared, copy_component,  # For opting out of deep copy
     IndexView, LazyIndex, MaterializedIndex,
 )
 
@@ -403,8 +404,9 @@ is_monitored(health_instance)  # True
 
 **Behavior:**
 - Triggers `OnComponentChanged` observers when field values change
-- Components are deep copied during spawn (not shared between entities)
+- Components are deep copied during spawn (like all components by default)
 - Components automatically bind to world for change tracking
+- Mutually exclusive with `@shared_component`
 
 **MonitoredMixin methods (added to decorated classes):**
 ```python
@@ -412,6 +414,34 @@ def _bind_to_world(self, world: World, entity_id: EntityId) -> None: ...
 def _unbind_from_world(self) -> None: ...
 def _notify_change(self, old_value: Any, new_value: Any) -> None: ...
 ```
+
+### Shared Components
+
+The `@shared_component` decorator opts out of deep copying during spawn. Use for large immutable data.
+
+```python
+# src/relics/shared.py
+from relics import shared_component, is_shared, copy_component
+
+@shared_component
+@dataclass
+class SharedMeshData(Component):
+    vertices: List[float]  # Large immutable data, shared across entities
+    indices: List[int]
+
+# Check if a component is shared
+is_shared(SharedMeshData)  # True
+is_shared(instance)  # True
+
+# Manual component copying (used internally by spawn)
+copied = copy_component(component)  # Deep copy unless @shared_component
+```
+
+**Behavior:**
+- `@shared_component` components return the same instance during spawn (no copy)
+- All other components are deep copied (`copy.deepcopy()`) during spawn
+- Mutually exclusive with `@monitored` - cannot use both
+- Use for large immutable data like mesh references, texture atlases
 
 ### Systems
 
@@ -521,7 +551,7 @@ ai_system.paused = False
 | Issue | Explanation |
 |-------|-------------|
 | **Event timing** | Events are queued during operations, processed at end of `tick()` |
-| **Component sharing** | Without `@monitored`, prefab components are shared between entities (same instance) |
+| **Component copying** | All prefab components are deep copied during spawn by default. Use `@shared_component` to opt out. |
 | **Prefab components** | Components from prefabs do NOT trigger `OnComponentAdded` - use `OnEntityCreated` |
 | **Lazy validation** | Entity handles validate existence when accessing, not at creation |
 | **Delta required** | `world.tick(delta)` requires a delta parameter, use `tick(0)` for tests |
@@ -529,6 +559,7 @@ ai_system.paused = False
 | **System groups** | Default group is `"default"`. Use `include_groups`/`exclude_groups` in `tick()` to filter |
 | **Paused vs groups** | `paused` property is per-system; group filtering applies to categories of systems |
 | **Monitored decorator** | Use `@monitored_component` (recommended) or `@monitored` + `@dataclass` (any order) |
+| **Shared vs monitored** | `@shared_component` and `@monitored` are mutually exclusive |
 
 ---
 

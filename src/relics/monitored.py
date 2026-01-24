@@ -173,12 +173,26 @@ def monitored(cls: Type[T]) -> Type[T]:
             current: int
             maximum: int
 
+    Note: This decorator is mutually exclusive with @shared_component.
+    A component cannot be both monitored and shared because monitored
+    components need unique instances for change tracking.
+
     Args:
         cls: The component class to decorate.
 
     Returns:
         The decorated class with change tracking enabled.
+
+    Raises:
+        ValueError: If the class is already marked as @shared_component.
     """
+    # Check for mutual exclusion with @shared_component
+    if getattr(cls, "_is_shared", False):
+        raise ValueError(
+            f"Cannot mark {cls.__name__} as @monitored: "
+            "it is already @shared_component. These decorators are mutually exclusive."
+        )
+
     # Get field names if it's already a dataclass
     field_names: Optional[Set[str]] = None
     if is_dataclass(cls):
@@ -209,12 +223,26 @@ def monitored_component(cls: Type[T]) -> Type[T]:
             current: int
             maximum: int
 
+    Note: This decorator is mutually exclusive with @shared_component.
+    A component cannot be both monitored and shared because monitored
+    components need unique instances for change tracking.
+
     Args:
         cls: The component class to decorate.
 
     Returns:
         A dataclass with change tracking enabled.
+
+    Raises:
+        ValueError: If the class is already marked as @shared_component.
     """
+    # Check for mutual exclusion with @shared_component
+    if getattr(cls, "_is_shared", False):
+        raise ValueError(
+            f"Cannot mark {cls.__name__} as @monitored: "
+            "it is already @shared_component. These decorators are mutually exclusive."
+        )
+
     # Apply @dataclass first
     cls = std_dataclass(cls)
 
