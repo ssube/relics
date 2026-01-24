@@ -16,6 +16,7 @@ Relics is an engine-agnostic ECS framework that treats relationships as first-cl
 - **Query builder** for efficient entity filtering
 - **JSON persistence** with named snapshots (relics)
 - **Secondary indexes** for fast entity lookups
+- **Optional addons** for spatial indexing, networking, metrics, and more
 
 ## Installation
 
@@ -23,12 +24,23 @@ Relics is an engine-agnostic ECS framework that treats relationships as first-cl
 pip install relics
 ```
 
+Install with optional addon dependencies:
+
+```bash
+# All addons
+pip install relics[all]
+
+# Specific addons
+pip install relics[prometheus]    # Metrics and monitoring
+pip install relics[websocket]     # Real-time multiplayer sync
+```
+
 Or install from source:
 
 ```bash
 git clone https://github.com/ssube/relics.git
 cd relics
-pip install -e .
+pip install -e ".[all]"
 ```
 
 ## Quick Start
@@ -529,6 +541,152 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+## Addons
+
+Relics includes optional addons for extended functionality:
+
+### Spatial Indexing
+
+Efficient 2D/3D spatial queries using QuadTree and Octree data structures.
+
+```python
+from relics.addons.spatial import Position2D, create_spatial_index_2d, QuadTreeBounds
+
+# Create spatial index
+index = create_spatial_index_2d(
+    world,
+    bounds=QuadTreeBounds(center_x=500, center_y=500, half_width=500, half_height=500),
+)
+
+# Query nearby entities
+for entity in index.query_circle(center_x=250, center_y=250, radius=100):
+    print(f"Nearby: {entity.id}")
+
+# Find k-nearest neighbors
+nearest = index.query_nearest(x=500, y=500, count=5)
+```
+
+**Features:**
+- 2D (QuadTree) and 3D (Octree) indexing
+- Circle, rectangle, sphere, and box queries
+- K-nearest neighbor search
+- Automatic updates via observers
+- QueryBuilder integration with `with_index()`
+
+[Full documentation →](src/relics/addons/spatial/README.md)
+
+### Tile Grid
+
+Chunked tile system for 2D and layered 3D worlds.
+
+```python
+from relics.addons.tilegrid import (
+    ChunkMetadata, TileVisualLayer,
+    create_chunk_index, get_tile_at,
+)
+
+# Create chunk index and spawn chunks
+index = create_chunk_index(world, chunk_size=32)
+world.spawn("grass_chunk")
+
+# Query tiles by world position
+tile = get_tile_at(world, 5.0, 5.0, "ground", index)
+```
+
+**Features:**
+- Chunked tile maps with configurable sizes (16, 32, 64, 128)
+- Multiple visual layers with z-ordering
+- Per-tile elevation and collision data
+- Observer-driven dirty tracking
+- O(1) chunk lookup
+
+[Full documentation →](src/relics/addons/tilegrid/README.md)
+
+### Prometheus Metrics
+
+Production monitoring with Prometheus-compatible metrics.
+
+```python
+from relics.addons.prometheus import WorldMetricsCollector, MetricsServer
+
+# Create collector and server
+collector = WorldMetricsCollector(world, world_id="game_server")
+server = MetricsServer(port=8000)
+server.start()
+
+# Metrics are collected automatically or manually
+while running:
+    world.tick(0.016)
+    collector.collect()
+```
+
+**Metrics exposed:**
+- Entity counts (total, by prefab, by component)
+- System execution times (histogram)
+- Observer queue length and events processed
+- Index entity counts
+- Relationship counts by type
+- Tick duration and world epoch
+
+### WebSocket Sync
+
+Real-time multiplayer synchronization over WebSocket.
+
+```python
+# Server
+from relics.addons.websocket import WebSocketServerDriver
+
+server = WebSocketServerDriver(host="localhost", port=8765)
+server.attach(world)
+await server.start()
+
+# Client
+from relics.addons.websocket import WebSocketClientDriver
+
+client = WebSocketClientDriver(uri="ws://localhost:8765", client_id="player_1")
+client.attach(world)
+await client.connect()
+await client.sync()
+```
+
+**Features:**
+- Full world state synchronization
+- Incremental component change propagation
+- Entity lifecycle events (create/destroy)
+- Component whitelist for security
+- Heartbeat and reconnection handling
+
+### Procedural Prefabs
+
+Graph-based entity generation with conditional components and parameter inheritance.
+
+```python
+from relics.addons.procedural_prefabs import (
+    ProceduralPrefabRegistry, get_children, HasEquipped,
+)
+
+# Create registry and load definitions
+registry = ProceduralPrefabRegistry(world, rng_seed=42)
+registry.load_directory("prefabs/procedural/")
+
+# Spawn procedural entity with parameters
+character = registry.spawn("character", {
+    "race": "dwarf",
+    "class": "warrior",
+})
+
+# Query generated attachments
+for equipped in get_children(character, HasEquipped):
+    print(f"Equipped: {equipped.id}")
+```
+
+**Features:**
+- JSON/YAML-based prefab definitions
+- Conditional component selection (`when` clauses)
+- Parameter inheritance and derivation
+- Automatic child entity spawning
+- Cascade deletion support
 
 ## API Reference
 
