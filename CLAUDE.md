@@ -62,27 +62,37 @@ Monitored components (with `@monitored` decorator) are automatically bound to th
 
 This enables change tracking for `OnComponentChanged` observers.
 
-### @monitored Decorator Order (CRITICAL)
+### @monitored Decorator Usage
 
-**The `@monitored` decorator MUST come BEFORE `@dataclass`:**
+**Recommended: Use the combined `@monitored_component` decorator:**
 
 ```python
-# ✅ CORRECT - @monitored before @dataclass
+from relics import monitored_component
+
+# ✅ BEST - combined decorator handles ordering automatically
+@monitored_component
+class Health(Component):
+    current: int
+    maximum: int
+```
+
+**Alternative: Both decorator orders now work:**
+
+```python
+# ✅ Works
 @monitored
 @dataclass
 class Health(Component):
     current: int
     maximum: int
 
-# ❌ WRONG - will not track changes properly
+# ✅ Also works (order-independent)
 @dataclass
 @monitored
 class Health(Component):
     current: int
     maximum: int
 ```
-
-This is because `@monitored` needs to wrap the class after `@dataclass` has processed it.
 
 ### Observer Events
 

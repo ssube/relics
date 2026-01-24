@@ -3,7 +3,15 @@
 from dataclasses import dataclass
 from typing import Any, List, Tuple
 
-from relics import Component, Entity, OnComponentChanged, World, is_monitored, monitored
+from relics import (
+    Component,
+    Entity,
+    OnComponentChanged,
+    World,
+    is_monitored,
+    monitored,
+    monitored_component,
+)
 
 
 @dataclass
@@ -17,7 +25,26 @@ class Position(Component):
 @monitored
 @dataclass
 class Health(Component):
-    """Monitored component for health."""
+    """Monitored component for health (decorator order: @monitored @dataclass)."""
+
+    current: int
+    maximum: int
+
+
+# Test the reverse decorator order
+@dataclass
+@monitored
+class Mana(Component):
+    """Monitored component for mana (decorator order: @dataclass @monitored)."""
+
+    current: int
+    maximum: int
+
+
+# Test the combined decorator
+@monitored_component
+class Stamina(Component):
+    """Monitored component for stamina (using @monitored_component)."""
 
     current: int
     maximum: int
@@ -51,6 +78,104 @@ class TestMonitoredDecorator:
         # Can still modify values
         health.current = 80
         assert health.current == 80
+
+
+class TestDecoratorOrdering:
+    """Tests for decorator ordering flexibility."""
+
+    def test_monitored_before_dataclass(self) -> None:
+        """Test @monitored @dataclass order works (original order)."""
+        # Health uses @monitored @dataclass
+        assert is_monitored(Health) is True
+
+        health = Health(current=100, maximum=100)
+        assert health.current == 100
+        health.current = 50
+        assert health.current == 50
+
+    def test_dataclass_before_monitored(self) -> None:
+        """Test @dataclass @monitored order works (reverse order)."""
+        # Mana uses @dataclass @monitored
+        assert is_monitored(Mana) is True
+
+        mana = Mana(current=100, maximum=100)
+        assert mana.current == 100
+        mana.current = 50
+        assert mana.current == 50
+
+    def test_monitored_component_combined(self) -> None:
+        """Test @monitored_component combined decorator works."""
+        # Stamina uses @monitored_component
+        assert is_monitored(Stamina) is True
+
+        stamina = Stamina(current=100, maximum=100)
+        assert stamina.current == 100
+        stamina.current = 50
+        assert stamina.current == 50
+
+    def test_reverse_order_change_tracking(self) -> None:
+        """Test that @dataclass @monitored tracks changes correctly."""
+        world = World()
+        world.register_prefab("player", {Mana: Mana(current=100, maximum=100)})
+
+        changes: List[Tuple[str, Any, Any]] = []
+
+        class ManaChangeObserver(OnComponentChanged):
+            component_type = Mana
+
+            def on_component_changed(
+                self,
+                entity: Entity,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
+            ) -> None:
+                changes.append((field_name, old_value, new_value))
+
+        world.observe(ManaChangeObserver())
+
+        entity = world.spawn("player")
+        mana = entity.get_component(Mana)
+        mana._bind_to_world(world, entity.id)
+
+        mana.current = 80
+        world.tick(0.016)
+
+        assert len(changes) == 1
+        assert changes[0] == ("current", 100, 80)
+
+    def test_combined_decorator_change_tracking(self) -> None:
+        """Test that @monitored_component tracks changes correctly."""
+        world = World()
+        world.register_prefab("player", {Stamina: Stamina(current=100, maximum=100)})
+
+        changes: List[Tuple[str, Any, Any]] = []
+
+        class StaminaChangeObserver(OnComponentChanged):
+            component_type = Stamina
+
+            def on_component_changed(
+                self,
+                entity: Entity,
+                component: Component,
+                field_name: str,
+                old_value: Any,
+                new_value: Any,
+            ) -> None:
+                changes.append((field_name, old_value, new_value))
+
+        world.observe(StaminaChangeObserver())
+
+        entity = world.spawn("player")
+        stamina = entity.get_component(Stamina)
+        stamina._bind_to_world(world, entity.id)
+
+        stamina.current = 80
+        world.tick(0.016)
+
+        assert len(changes) == 1
+        assert changes[0] == ("current", 100, 80)
 
 
 class TestComponentChangeTracking:

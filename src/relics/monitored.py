@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import fields
-from typing import TYPE_CHECKING, Any, Type, TypeVar, cast
+from dataclasses import dataclass as std_dataclass
+from dataclasses import fields, is_dataclass
+from typing import TYPE_CHECKING, Any, Optional, Set, Type, TypeVar, cast
 
 from relics.types import Component
 
@@ -59,46 +60,17 @@ class MonitoredMixin:
             )
 
 
-def monitored(cls: Type[T]) -> Type[T]:
-    """Decorator to enable change tracking on a component class.
+def _create_monitored_setattr(
+    field_names_cache: Optional[Set[str]] = None,
+) -> Any:
+    """Create a __setattr__ that tracks changes.
 
-    Use this decorator on component classes that need to trigger
-    OnComponentChanged observers when their values change.
-
-    The decorated class must be a dataclass (use @dataclass from
-    pydantic.dataclasses or standard dataclasses).
-
-    Example:
-        @monitored
-        @dataclass
-        class Health(Component):
-            current: int
-            maximum: int
-
-    Args:
-        cls: The component class to decorate.
-
-    Returns:
-        The decorated class with change tracking enabled.
+    Uses lazy field detection - field names are detected on first use
+    if not provided upfront.
     """
-    # Add the mixin methods and attributes
-    cls._monitored_world = None  # type: ignore[attr-defined]
-    cls._monitored_entity_id = None  # type: ignore[attr-defined]
-    cls._is_monitored = True  # type: ignore[attr-defined]
-
-    # Add mixin methods
-    cls._bind_to_world = MonitoredMixin._bind_to_world  # type: ignore
-    cls._unbind_from_world = MonitoredMixin._unbind_from_world  # type: ignore
-    cls._notify_change = MonitoredMixin._notify_change  # type: ignore
-
-    # Override __setattr__ for change tracking
-    # Note: This must be done after the dataclass decorator is applied
-
-    # Get field names if it's already a dataclass
-    try:
-        field_names = {f.name for f in fields(cls)}  # type: ignore
-    except TypeError:
-        field_names = set()
+    # Use a mutable container for lazy initialization
+    cache: dict[str, Set[str]] = {"fields": field_names_cache or set()}
+    initialized = [field_names_cache is not None]
 
     def monitored_setattr(self: Any, name: str, value: Any) -> None:
         """Set attribute and notify world if this is a monitored field."""
@@ -106,6 +78,16 @@ def monitored(cls: Type[T]) -> Type[T]:
         if name.startswith("_monitored") or name.startswith("__"):
             object.__setattr__(self, name, value)
             return
+
+        # Lazy initialize field names from dataclass if needed
+        if not initialized[0]:
+            try:
+                cache["fields"] = {f.name for f in fields(self.__class__)}
+            except TypeError:
+                cache["fields"] = set()
+            initialized[0] = True
+
+        field_names = cache["fields"]
 
         # Check if we should track this change
         should_notify = (
@@ -130,9 +112,116 @@ def monitored(cls: Type[T]) -> Type[T]:
         else:
             object.__setattr__(self, name, value)
 
-    cls.__setattr__ = monitored_setattr  # type: ignore[method-assign]
+    return monitored_setattr
+
+
+def _apply_monitoring(cls: Type[T], field_names: Optional[Set[str]] = None) -> Type[T]:
+    """Apply monitoring infrastructure to a class.
+
+    Args:
+        cls: The class to add monitoring to.
+        field_names: Optional pre-computed field names (for dataclasses).
+
+    Returns:
+        The modified class with monitoring enabled.
+    """
+    # Add the mixin methods and attributes
+    cls._monitored_world = None  # type: ignore[attr-defined]
+    cls._monitored_entity_id = None  # type: ignore[attr-defined]
+    cls._is_monitored = True  # type: ignore[attr-defined]
+
+    # Add mixin methods
+    cls._bind_to_world = MonitoredMixin._bind_to_world  # type: ignore
+    cls._unbind_from_world = MonitoredMixin._unbind_from_world  # type: ignore
+    cls._notify_change = MonitoredMixin._notify_change  # type: ignore
+
+    # Override __setattr__ for change tracking
+    cls.__setattr__ = _create_monitored_setattr(field_names)  # type: ignore[method-assign]
 
     return cls
+
+
+def monitored(cls: Type[T]) -> Type[T]:
+    """Decorator to enable change tracking on a component class.
+
+    Use this decorator on component classes that need to trigger
+    OnComponentChanged observers when their values change.
+
+    This decorator can be used in two ways:
+
+    1. With @dataclass (order-independent):
+
+        @monitored
+        @dataclass
+        class Health(Component):
+            current: int
+            maximum: int
+
+        # OR
+
+        @dataclass
+        @monitored
+        class Health(Component):
+            current: int
+            maximum: int
+
+    2. Using the combined decorator (recommended):
+
+        @monitored_component
+        class Health(Component):
+            current: int
+            maximum: int
+
+    Args:
+        cls: The component class to decorate.
+
+    Returns:
+        The decorated class with change tracking enabled.
+    """
+    # Get field names if it's already a dataclass
+    field_names: Optional[Set[str]] = None
+    if is_dataclass(cls):
+        try:
+            field_names = {f.name for f in fields(cls)}
+        except TypeError:
+            pass
+
+    return _apply_monitoring(cls, field_names)
+
+
+def monitored_component(cls: Type[T]) -> Type[T]:
+    """Combined decorator that creates a monitored dataclass component.
+
+    This is the recommended way to create monitored components as it
+    handles the decorator ordering automatically.
+
+    Example:
+        @monitored_component
+        class Health(Component):
+            current: int
+            maximum: int
+
+        # Equivalent to:
+        @monitored
+        @dataclass
+        class Health(Component):
+            current: int
+            maximum: int
+
+    Args:
+        cls: The component class to decorate.
+
+    Returns:
+        A dataclass with change tracking enabled.
+    """
+    # Apply @dataclass first
+    cls = std_dataclass(cls)
+
+    # Get field names from the dataclass
+    field_names = {f.name for f in fields(cls)}
+
+    # Apply monitoring
+    return _apply_monitoring(cls, field_names)
 
 
 def is_monitored(obj: Any) -> bool:

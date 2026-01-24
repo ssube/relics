@@ -24,7 +24,7 @@ from relics.errors import (
 from relics.index import IndexView, LazyIndex, MaterializedIndex
 
 # Monitored decorator
-from relics.monitored import is_monitored, monitored
+from relics.monitored import is_monitored, monitored, monitored_component
 
 # Observers
 from relics.observer import (
@@ -110,6 +110,7 @@ __all__ = [
     # Monitored
     "is_monitored",
     "monitored",
+    "monitored_component",
     # Indexes
     "IndexView",
     "LazyIndex",

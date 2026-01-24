@@ -343,21 +343,20 @@ class Health(Component):
 print(is_monitored(Health))  # True
 ```
 
-> ⚠️ **CRITICAL: Decorator Order**
+> 💡 **Recommended: Use `@monitored_component`**
 >
-> The `@monitored` decorator **MUST** come **BEFORE** `@dataclass`:
+> The simplest way to create a monitored component is with the combined decorator:
 >
 > ```python
-> # ✅ CORRECT
-> @monitored
-> @dataclass
-> class Health(Component): ...
+> from relics import monitored_component
 >
-> # ❌ WRONG - will not track changes
-> @dataclass
-> @monitored
-> class Health(Component): ...
+> @monitored_component
+> class Health(Component):
+>     current: int
+>     maximum: int
 > ```
+>
+> This handles decorator ordering automatically and is equivalent to `@monitored @dataclass`.
 
 ### How It Works
 
@@ -526,15 +525,19 @@ class StateMachineObserver(ComponentObserver):
 ### 2. Component Not Monitored
 
 ```python
-# ❌ Order matters - @monitored must be first
-@dataclass
-@monitored  # Wrong order!
+# ✅ Best: use combined decorator
+@monitored_component
 class Health(Component):
     current: int
 
-# ✅ Correct order
+# ✅ Also works: either decorator order
 @monitored
 @dataclass
+class Health(Component):
+    current: int
+
+@dataclass
+@monitored
 class Health(Component):
     current: int
 ```

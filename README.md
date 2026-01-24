@@ -313,13 +313,12 @@ class ScoreObserver(OnCustomEvent):
 
 ### Change Tracking
 
-Use the `@monitored` decorator to track component changes:
+Use `@monitored_component` to track component changes:
 
 ```python
-from relics import monitored, OnComponentChanged
+from relics import monitored_component, OnComponentChanged
 
-@monitored
-@dataclass
+@monitored_component
 class TrackedHealth(Component):
     current: int
     maximum: int
@@ -427,7 +426,7 @@ names = list_prefabs(world)
 from pydantic.dataclasses import dataclass
 from relics import (
     Component, Edge, World, System, RunOrder,
-    OnComponentAdded, CustomEvent, monitored
+    OnComponentAdded, CustomEvent, monitored_component
 )
 
 # Components
@@ -441,8 +440,7 @@ class Velocity(Component):
     dx: float
     dy: float
 
-@monitored
-@dataclass
+@monitored_component
 class Health(Component):
     current: int
     maximum: int
