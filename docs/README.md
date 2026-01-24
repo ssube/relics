@@ -20,9 +20,9 @@ Optional extensions for specialized functionality:
 
 - [Spatial Indexing](../src/relics/addons/spatial/README.md) - 2D/3D spatial queries with quadtree/octree
 - [Tile Grid](../src/relics/addons/tilegrid/README.md) - Chunked tile-based world management
-- Procedural Prefabs - Dynamic entity generation (documentation pending)
-- Prometheus - Metrics and monitoring (documentation pending)
-- WebSocket - Network synchronization (documentation pending)
+- [Procedural Prefabs](../src/relics/addons/procedural_prefabs/README.md) - Graph-based entity generation
+- [Prometheus](../src/relics/addons/prometheus/README.md) - Metrics and monitoring
+- [WebSocket](../src/relics/addons/websocket/README.md) - Real-time multiplayer synchronization
 
 ## Reference
 

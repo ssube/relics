@@ -629,6 +629,8 @@ while running:
 - Relationship counts by type
 - Tick duration and world epoch
 
+[Full documentation →](src/relics/addons/prometheus/README.md)
+
 ### WebSocket Sync
 
 Real-time multiplayer synchronization over WebSocket.
@@ -656,6 +658,8 @@ await client.sync()
 - Entity lifecycle events (create/destroy)
 - Component whitelist for security
 - Heartbeat and reconnection handling
+
+[Full documentation →](src/relics/addons/websocket/README.md)
 
 ### Procedural Prefabs
 
@@ -687,6 +691,8 @@ for equipped in get_children(character, HasEquipped):
 - Parameter inheritance and derivation
 - Automatic child entity spawning
 - Cascade deletion support
+
+[Full documentation →](src/relics/addons/procedural_prefabs/README.md)
 
 ## API Reference
 
