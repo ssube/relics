@@ -14,6 +14,16 @@ Documentation for the Relics ECS framework with graph database semantics.
 - [Systems](SYSTEMS.md) - Logic that operates on entities each tick
 - [Observers](OBSERVERS.md) - Event-driven reactions to world changes
 
+## Addons
+
+Optional extensions for specialized functionality:
+
+- [Spatial Indexing](../src/relics/addons/spatial/README.md) - 2D/3D spatial queries with quadtree/octree
+- [Tile Grid](../src/relics/addons/tilegrid/README.md) - Chunked tile-based world management
+- Procedural Prefabs - Dynamic entity generation (documentation pending)
+- Prometheus - Metrics and monitoring (documentation pending)
+- WebSocket - Network synchronization (documentation pending)
+
 ## Reference
 
 - [Benchmarks](BENCHMARKS.md) - Performance characteristics and optimization guidance

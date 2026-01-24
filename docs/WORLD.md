@@ -421,6 +421,37 @@ for entity_id, pos, vel in query.iterate([Position, Velocity]).execute_component
     print(f"{entity_id}: pos=({pos.x}, {pos.y})")
 ```
 
+### Using Indexes in Queries
+
+Filter queries using indexes with `with_index()` and `without_index()`:
+
+```python
+# Create indexes
+alive_index = world.create_index(
+    "alive",
+    world.query().with_all([Health]).with_filter(lambda e: e.get_component(Health).current > 0),
+    materialized=True,
+)
+
+poisoned_index = world.create_index(
+    "poisoned",
+    world.query().with_all([Poisoned]),
+    materialized=True,
+)
+
+# Query using indexes
+# Only entities in the alive index
+for entity in world.query().with_index(alive_index).execute_entities():
+    print(f"Alive: {entity.id}")
+
+# Entities NOT in the poisoned index
+for entity in world.query().with_all([Health]).without_index(poisoned_index).execute_entities():
+    print(f"Not poisoned: {entity.id}")
+
+# Combine multiple indexes (intersection)
+healthy_query = world.query().with_index(alive_index).without_index(poisoned_index)
+```
+
 ---
 
 ## 🎛️ World Configuration
@@ -519,6 +550,7 @@ while running:
 | `get_entity(entity_id)` | Get entity handle by ID |
 | `has_entity(entity_id)` | Check if entity exists |
 | `remove(entity)` | Remove an entity |
+| `get_entities_with_component(type)` | Get all entity IDs with a component (O(1)) |
 | `register_system(system)` | Add a system |
 | `observe(observer)` | Add an observer |
 | `tick(delta)` | Advance simulation |

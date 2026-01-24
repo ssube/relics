@@ -225,15 +225,18 @@ class MovementSystem(System):
             pos = entity.get_component(Position)
             vel = entity.get_component(Velocity)
 
-            # Update position (create new immutable component)
+            # Update position using the replace pattern
+            # (useful for frozen/immutable components)
             new_pos = Position(
                 x=pos.x + vel.dx * delta,
                 y=pos.y + vel.dy * delta
             )
-
-            # Replace the component
             entity.remove_component(Position)
             entity.add_component(new_pos)
+
+            # Alternative: mutate directly (for mutable components)
+            # pos.x += vel.dx * delta
+            # pos.y += vel.dy * delta
 
 # Register the system
 world.register_system(MovementSystem())

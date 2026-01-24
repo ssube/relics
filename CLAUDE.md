@@ -62,6 +62,28 @@ Monitored components (with `@monitored` decorator) are automatically bound to th
 
 This enables change tracking for `OnComponentChanged` observers.
 
+### @monitored Decorator Order (CRITICAL)
+
+**The `@monitored` decorator MUST come BEFORE `@dataclass`:**
+
+```python
+# ✅ CORRECT - @monitored before @dataclass
+@monitored
+@dataclass
+class Health(Component):
+    current: int
+    maximum: int
+
+# ❌ WRONG - will not track changes properly
+@dataclass
+@monitored
+class Health(Component):
+    current: int
+    maximum: int
+```
+
+This is because `@monitored` needs to wrap the class after `@dataclass` has processed it.
+
 ### Observer Events
 
 - `OnEntityCreated` - Triggered when entity spawns (NOT when components added)

@@ -45,14 +45,14 @@ class Position(Component):
 
 @dataclass
 class Velocity(Component):
-    vx: float
-    vy: float
+    dx: float
+    dy: float
 
 # Create world and register prefabs
 world = World()
 world.register_prefab(
     "player",
-    {Position: Position(x=0, y=0), Velocity: Velocity(vx=0, vy=0)}
+    {Position: Position(x=0, y=0), Velocity: Velocity(dx=0, dy=0)}
 )
 
 # Spawn entities
@@ -62,8 +62,8 @@ player = world.spawn("player", {Position: Position(x=10, y=20)})
 for entity in world.query().with_all([Position, Velocity]).execute_entities():
     pos = entity.get_component(Position)
     vel = entity.get_component(Velocity)
-    pos.x += vel.vx
-    pos.y += vel.vy
+    pos.x += vel.dx
+    pos.y += vel.dy
 
 # Advance simulation
 world.tick(0.016)  # ~60 FPS
@@ -180,7 +180,7 @@ query = (world.query()
     .iterate([Position, Velocity]))
 
 for entity_id, pos, vel in query.execute_components():
-    pos.x += vel.vx * delta
+    pos.x += vel.dx * delta
 ```
 
 ### Systems
@@ -211,8 +211,8 @@ class MovementSystem(System):
     def process(self, entities, components, delta):
         positions, velocities = components
         for i, entity in enumerate(entities):
-            positions[i].x += velocities[i].vx * delta
-            positions[i].y += velocities[i].vy * delta
+            positions[i].x += velocities[i].dx * delta
+            positions[i].y += velocities[i].dy * delta
 
 # Register systems
 world.register_system(MovementSystem())
@@ -438,8 +438,8 @@ class Position(Component):
 
 @dataclass
 class Velocity(Component):
-    vx: float
-    vy: float
+    dx: float
+    dy: float
 
 @monitored
 @dataclass
@@ -476,8 +476,8 @@ class MovementSystem(System):
     def process(self, entities, components, delta):
         positions, velocities = components
         for i in range(len(entities)):
-            positions[i].x += velocities[i].vx * delta
-            positions[i].y += velocities[i].vy * delta
+            positions[i].x += velocities[i].dx * delta
+            positions[i].y += velocities[i].dy * delta
 
 # Observers
 class DeathObserver(OnComponentAdded):
@@ -494,7 +494,7 @@ def main():
     # Register prefabs
     world.register_prefab("player", {
         Position: Position(x=0, y=0),
-        Velocity: Velocity(vx=0, vy=0),
+        Velocity: Velocity(dx=0, dy=0),
         Health: Health(current=100, maximum=100),
         Team: Team(team_id="heroes"),
     })
@@ -514,8 +514,8 @@ def main():
     for _ in range(100):
         # Move player
         vel = player.get_component(Velocity)
-        vel.vx = 1.0
-        vel.vy = 0.5
+        vel.dx = 1.0
+        vel.dy = 0.5
 
         # Advance simulation
         world.tick(0.016)

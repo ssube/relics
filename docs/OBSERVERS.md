@@ -343,6 +343,22 @@ class Health(Component):
 print(is_monitored(Health))  # True
 ```
 
+> ⚠️ **CRITICAL: Decorator Order**
+>
+> The `@monitored` decorator **MUST** come **BEFORE** `@dataclass`:
+>
+> ```python
+> # ✅ CORRECT
+> @monitored
+> @dataclass
+> class Health(Component): ...
+>
+> # ❌ WRONG - will not track changes
+> @dataclass
+> @monitored
+> class Health(Component): ...
+> ```
+
 ### How It Works
 
 1. The decorator adds change tracking to `__setattr__`
