@@ -7,7 +7,7 @@ across JSON, SQLite, and in-memory drivers.
 
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Dict, List, Optional, Set, Type
 
 import pytest
 from pydantic.dataclasses import dataclass
@@ -19,7 +19,6 @@ from relics.persistence import (
     SQLitePersistenceDriver,
 )
 from relics.types import EntityId
-
 
 # =============================================================================
 # Test Components
@@ -116,7 +115,7 @@ def components_equal(comp1: Component, comp2: Component) -> bool:
     Returns:
         True if components are deeply equal.
     """
-    if type(comp1) != type(comp2):
+    if type(comp1) is not type(comp2):
         return False
 
     fields = get_component_fields(comp1)
@@ -144,9 +143,9 @@ def assert_worlds_equal(original: World, loaded: World) -> None:
         AssertionError: If worlds are not equal.
     """
     # 1. Metadata equality
-    assert original.epoch == loaded.epoch, (
-        f"Epoch mismatch: {original.epoch} != {loaded.epoch}"
-    )
+    assert (
+        original.epoch == loaded.epoch
+    ), f"Epoch mismatch: {original.epoch} != {loaded.epoch}"
 
     # 2. Entity equality - same entity IDs
     original_ids: Set[EntityId] = set(original._entities.keys())

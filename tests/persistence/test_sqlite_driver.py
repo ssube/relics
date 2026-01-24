@@ -585,9 +585,7 @@ class TestSQLiteEdgeCases:
             # Manually corrupt by deleting source entity from database
             conn = sqlite3.connect(temp_path)
             conn.execute(f"DELETE FROM entities WHERE entity_id = '{p1.id}'")
-            conn.execute(
-                f"DELETE FROM component_Position WHERE entity_id = '{p1.id}'"
-            )
+            conn.execute(f"DELETE FROM component_Position WHERE entity_id = '{p1.id}'")
             conn.commit()
             conn.close()
 
@@ -619,9 +617,7 @@ class TestSQLiteEdgeCases:
             # Manually corrupt by deleting target entity from database
             conn = sqlite3.connect(temp_path)
             conn.execute(f"DELETE FROM entities WHERE entity_id = '{p2.id}'")
-            conn.execute(
-                f"DELETE FROM component_Position WHERE entity_id = '{p2.id}'"
-            )
+            conn.execute(f"DELETE FROM component_Position WHERE entity_id = '{p2.id}'")
             conn.commit()
             conn.close()
 
