@@ -1,4 +1,7 @@
-"""Performance tests for spatial indexing addon."""
+"""Performance tests for spatial indexing addon.
+
+Run with: pytest tests/addons/spatial/test_performance.py -v -s -m perf
+"""
 
 import random
 import time
@@ -18,6 +21,7 @@ from relics.addons.spatial import (
 )
 
 
+@pytest.mark.perf
 class TestQuadTreePerformance:
     """Performance tests for 2D spatial indexing."""
 
@@ -98,6 +102,7 @@ class TestQuadTreePerformance:
         # (Note: this may vary based on query region size)
 
 
+@pytest.mark.perf
 class TestOctreePerformance:
     """Performance tests for 3D spatial indexing."""
 
@@ -138,6 +143,7 @@ class TestOctreePerformance:
         assert avg_time_ms < 10, f"Query took {avg_time_ms:.3f}ms, expected < 10ms"
 
 
+@pytest.mark.perf
 class TestNearestNeighborPerformance:
     """Performance tests for nearest neighbor queries."""
 
@@ -177,6 +183,7 @@ class TestNearestNeighborPerformance:
         assert avg_time_ms < 30, f"Query took {avg_time_ms:.3f}ms, expected < 30ms"
 
 
+@pytest.mark.perf
 class TestInsertionPerformance:
     """Performance tests for entity insertion."""
 
@@ -245,6 +252,7 @@ class TestInsertionPerformance:
         print(f"\nUpdate 1k entity positions: {elapsed*1000:.2f}ms")
 
 
+@pytest.mark.perf
 class TestScaling:
     """Tests for scaling behavior."""
 

@@ -320,6 +320,97 @@ class TestInMemoryHelperMethods:
         assert "snap2" in snapshots
 
 
+class TestInMemoryEdgeCases:
+    """Tests for edge cases in loading - unknown types and orphaned data."""
+
+    def test_load_skips_unknown_component_types(self) -> None:
+        """Test loading world with components not in registry."""
+        driver = InMemoryPersistenceDriver()
+        world = World()
+        world.register_prefab(
+            "player",
+            {Position: Position(x=0, y=0), Health: Health(current=100, maximum=100)},
+        )
+        entity = world.spawn("player")
+        driver.save(world, "snapshot")
+
+        # Load with only Position in registry - Health should be skipped
+        world2 = World()
+        driver.load(world2, "snapshot", {"Position": Position})  # No Health
+
+        loaded = world2.get_entity(entity.id)
+        assert loaded.has_component(Position)
+        assert not loaded.has_component(Health)
+
+    def test_load_skips_unknown_edge_types(self) -> None:
+        """Test loading world with edge types not in registry."""
+        driver = InMemoryPersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+        driver.save(world, "with_unknown_edge")
+
+        # Load without AllyTo in edge registry
+        world2 = World()
+        driver.load(world2, "with_unknown_edge", {"Position": Position}, {})
+
+        loaded_p1 = world2.get_entity(p1.id)
+        # Should not have relationship since edge type wasn't in registry
+        assert not loaded_p1.has_relationship(AllyTo)
+
+    def test_load_skips_orphaned_source_relationships(self) -> None:
+        """Test loading relationships where source entity is missing."""
+        driver = InMemoryPersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+        driver.save(world, "snapshot")
+
+        # Manually corrupt the data by removing source entity
+        data = driver._storage["snapshot"]
+        # Remove p1 from entities but keep relationship
+        del data["entities"][str(p1.id)]
+        del data["components"]["Position"][str(p1.id)]
+
+        world2 = World()
+        driver.load(world2, "snapshot", {"Position": Position}, {"AllyTo": AllyTo})
+
+        # Only p2 should exist, p1 relationships should be skipped
+        assert not world2.has_entity(p1.id)
+        assert world2.has_entity(p2.id)
+
+    def test_load_skips_orphaned_target_relationships(self) -> None:
+        """Test loading relationships where target entity is missing."""
+        driver = InMemoryPersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+        driver.save(world, "snapshot")
+
+        # Manually corrupt the data by removing target entity
+        data = driver._storage["snapshot"]
+        del data["entities"][str(p2.id)]
+        del data["components"]["Position"][str(p2.id)]
+
+        world2 = World()
+        driver.load(world2, "snapshot", {"Position": Position}, {"AllyTo": AllyTo})
+
+        # p1 should exist but have no relationships (target is missing)
+        assert world2.has_entity(p1.id)
+        assert not world2.has_entity(p2.id)
+        loaded_p1 = world2.get_entity(p1.id)
+        assert not loaded_p1.has_relationship(AllyTo)
+
+
 class TestInMemoryUseCases:
     """Tests for common use cases."""
 

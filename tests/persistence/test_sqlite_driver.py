@@ -563,6 +563,174 @@ class TestSQLitePersistenceDriver:
             assert len(info.created_at) > 0
 
 
+class TestSQLiteEdgeCases:
+    """Tests for edge cases in SQLite loading - orphaned data and corrupted files."""
+
+    def test_load_skips_orphaned_source_relationships(self) -> None:
+        """Test loading with relationships pointing to missing source entities."""
+        driver = SQLitePersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            driver.save(world, temp_path)
+
+            # Manually corrupt by deleting source entity from database
+            conn = sqlite3.connect(temp_path)
+            conn.execute(f"DELETE FROM entities WHERE entity_id = '{p1.id}'")
+            conn.execute(
+                f"DELETE FROM component_Position WHERE entity_id = '{p1.id}'"
+            )
+            conn.commit()
+            conn.close()
+
+            world2 = World()
+            driver.load(world2, temp_path, {"Position": Position}, {"AllyTo": AllyTo})
+
+            # Only p2 should exist
+            assert not world2.has_entity(p1.id)
+            assert world2.has_entity(p2.id)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_load_skips_orphaned_target_relationships(self) -> None:
+        """Test loading with relationships pointing to missing target entities."""
+        driver = SQLitePersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        p1 = world.spawn("player")
+        p2 = world.spawn("player")
+        p1.add_relationship(AllyTo(trust_level=0.9), p2.id)
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            driver.save(world, temp_path)
+
+            # Manually corrupt by deleting target entity from database
+            conn = sqlite3.connect(temp_path)
+            conn.execute(f"DELETE FROM entities WHERE entity_id = '{p2.id}'")
+            conn.execute(
+                f"DELETE FROM component_Position WHERE entity_id = '{p2.id}'"
+            )
+            conn.commit()
+            conn.close()
+
+            world2 = World()
+            driver.load(world2, temp_path, {"Position": Position}, {"AllyTo": AllyTo})
+
+            # p1 should exist but have no relationships
+            assert world2.has_entity(p1.id)
+            assert not world2.has_entity(p2.id)
+            loaded_p1 = world2.get_entity(p1.id)
+            assert not loaded_p1.has_relationship(AllyTo)
+        finally:
+            Path(temp_path).unlink()
+
+    def test_load_skips_orphaned_components(self) -> None:
+        """Test loading with components for non-existent entities."""
+        driver = SQLitePersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        entity = world.spawn("player")
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            driver.save(world, temp_path)
+
+            # Manually corrupt by deleting entity but keeping component
+            conn = sqlite3.connect(temp_path)
+            conn.execute(f"DELETE FROM entities WHERE entity_id = '{entity.id}'")
+            conn.commit()
+            conn.close()
+
+            world2 = World()
+            driver.load(world2, temp_path, {"Position": Position})
+
+            # Should have no entities (component is orphaned)
+            assert len(world2._entities) == 0
+        finally:
+            Path(temp_path).unlink()
+
+    def test_list_relics_skips_corrupted_files(self) -> None:
+        """Test list_relics handles corrupted database files gracefully."""
+        driver = SQLitePersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.spawn("player")
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Save a valid relic
+            driver.save_relic(world, "valid_relic", temp_dir)
+
+            # Create a corrupted .db file
+            corrupted_path = Path(temp_dir) / "corrupted.db"
+            corrupted_path.write_text("not a valid sqlite database")
+
+            # Create another corrupted file with valid SQLite but no metadata table
+            no_metadata_path = Path(temp_dir) / "no_metadata.db"
+            conn = sqlite3.connect(str(no_metadata_path))
+            conn.execute("CREATE TABLE other (id INTEGER)")
+            conn.commit()
+            conn.close()
+
+            # List should skip corrupted files and return only valid relic
+            relics = driver.list_relics(temp_dir)
+
+            names = [r.name for r in relics]
+            assert "valid_relic" in names
+            assert "corrupted" not in names
+            assert "no_metadata" not in names
+
+    def test_deserialize_malformed_json_raises_validation_error(self) -> None:
+        """Test that malformed JSON in complex fields raises validation error.
+
+        The JSONDecodeError is caught and the raw string is returned,
+        but Pydantic validation then fails because it expects a list.
+        """
+        import pydantic
+
+        driver = SQLitePersistenceDriver()
+        world = World()
+        world.register_prefab("player", {Inventory: Inventory(items=[], capacity=10)})
+        entity = world.spawn("player")
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".db", delete=False) as f:
+            temp_path = f.name
+
+        try:
+            driver.save(world, temp_path)
+
+            # Corrupt the JSON in the items column
+            conn = sqlite3.connect(temp_path)
+            conn.execute(
+                f"UPDATE component_Inventory SET items = 'not-valid-json[' "
+                f"WHERE entity_id = '{entity.id}'"
+            )
+            conn.commit()
+            conn.close()
+
+            world2 = World()
+            # The JSON decode error is caught and returns string as-is,
+            # but Pydantic validation then fails because items should be a list
+            with pytest.raises(pydantic.ValidationError):
+                driver.load(world2, temp_path, {"Inventory": Inventory})
+        finally:
+            Path(temp_path).unlink()
+
+
 class TestSQLiteSchemaDetails:
     """Tests for SQLite schema details."""
 

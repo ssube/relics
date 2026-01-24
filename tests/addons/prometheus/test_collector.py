@@ -417,6 +417,97 @@ class TestWorldMetricsCollectorEdgeCases:
         count = ENTITY_COUNT.labels(world_id="test_empty")._value.get()
         assert count == 0
 
+    def test_collect_after_detach(self) -> None:
+        """Test that collect() handles detached state gracefully."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.spawn("player")
+        world.tick(0)
+
+        collector = WorldMetricsCollector(world, world_id="test_detach_collect")
+
+        # Collect once to verify it works
+        collector.collect()
+
+        # Detach the collector
+        collector.detach()
+
+        # Collecting after detach should not raise
+        collector.collect()  # Should be a no-op
+
+    def test_record_observer_event(self) -> None:
+        """Test recording observer events in metrics."""
+        from relics.addons.prometheus.metrics import OBSERVER_EVENTS_PROCESSED
+
+        world = World()
+        collector = WorldMetricsCollector(world, world_id="test_obs_event")
+
+        # Record some observer events
+        collector.record_observer_event("component_added")
+        collector.record_observer_event("component_added")
+        collector.record_observer_event("entity_created")
+
+        # Verify counter was incremented
+        added_count = OBSERVER_EVENTS_PROCESSED.labels(
+            world_id="test_obs_event", event_type="component_added"
+        )._value.get()
+        created_count = OBSERVER_EVENTS_PROCESSED.labels(
+            world_id="test_obs_event", event_type="entity_created"
+        )._value.get()
+
+        assert added_count == 2
+        assert created_count == 1
+
+    def test_enable_auto_collect_when_already_enabled(self) -> None:
+        """Test that enabling auto-collect twice is idempotent."""
+        world = World()
+        collector = WorldMetricsCollector(world, world_id="test_double_enable")
+
+        collector.enable_auto_collect()
+        original_tick = collector._original_tick
+
+        # Enable again - should be no-op
+        collector.enable_auto_collect()
+
+        # Original tick should be unchanged
+        assert collector._original_tick is original_tick
+
+    def test_disable_auto_collect_when_not_enabled(self) -> None:
+        """Test that disabling auto-collect when not enabled is safe."""
+        world = World()
+        collector = WorldMetricsCollector(world, world_id="test_disable_noop")
+
+        # Disable without enabling first - should be no-op
+        collector.disable_auto_collect()
+
+        assert collector._original_tick is None
+
+    def test_enable_auto_collect_after_detach(self) -> None:
+        """Test that enable_auto_collect after detach is safe."""
+        world = World()
+        collector = WorldMetricsCollector(world, world_id="test_enable_after_detach")
+
+        collector.detach()
+
+        # Enable after detach - should be no-op
+        collector.enable_auto_collect()
+
+        assert collector._original_tick is None
+
+    def test_disable_auto_collect_after_detach(self) -> None:
+        """Test that disable_auto_collect after detach is safe."""
+        world = World()
+        collector = WorldMetricsCollector(
+            world, world_id="test_disable_after_detach", collect_on_tick=True
+        )
+
+        collector.detach()
+
+        # Disable after detach - should be no-op
+        collector.disable_auto_collect()
+
+        assert collector._world is None
+
     def test_collect_clears_removed_prefabs(self) -> None:
         """Test that removed prefabs are cleared from metrics."""
         world = World()
@@ -463,3 +554,98 @@ class TestWorldMetricsCollectorEdgeCases:
 
         assert count1 == 2
         assert count2 == 1
+
+    def test_collect_clears_removed_components(self) -> None:
+        """Test that removed component types are cleared from metrics."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.register_prefab(
+            "enemy",
+            {Position: Position(x=0, y=0), Health: Health(current=50, maximum=50)},
+        )
+        collector = WorldMetricsCollector(world, world_id="test_clear_comp")
+
+        # Spawn entities with different components
+        world.spawn("player")
+        enemy = world.spawn("enemy")
+        world.tick(0)
+        collector.collect()
+
+        # Verify Health is tracked
+        health_count = ENTITIES_BY_COMPONENT.labels(
+            world_id="test_clear_comp", component="Health"
+        )._value.get()
+        assert health_count == 1
+
+        # Remove the enemy (which has Health)
+        world.remove(enemy)
+        world.tick(0)
+        collector.collect()
+
+        # Health count should now be 0 (cleared)
+        health_count = ENTITIES_BY_COMPONENT.labels(
+            world_id="test_clear_comp", component="Health"
+        )._value.get()
+        assert health_count == 0
+
+    def test_collect_clears_removed_indexes(self) -> None:
+        """Test that removed indexes are cleared from metrics."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+        world.spawn("player")
+        world.tick(0)
+
+        # Create and register an index
+        index = MaterializedIndex(world, world.query().with_all([Position]), [Position])
+        world._indexes["test_index"] = index
+
+        collector = WorldMetricsCollector(world, world_id="test_idx_clear")
+        collector.collect()
+
+        # Verify index is tracked
+        idx_count = INDEX_ENTITY_COUNT.labels(
+            world_id="test_idx_clear", index_name="test_index"
+        )._value.get()
+        assert idx_count == 1
+
+        # Remove the index
+        del world._indexes["test_index"]
+        collector.collect()
+
+        # Index count should be 0 (cleared)
+        idx_count = INDEX_ENTITY_COUNT.labels(
+            world_id="test_idx_clear", index_name="test_index"
+        )._value.get()
+        assert idx_count == 0
+
+    def test_collect_clears_removed_edge_types(self) -> None:
+        """Test that removed edge types are cleared from metrics."""
+        world = World()
+        world.register_prefab("player", {Position: Position(x=0, y=0)})
+
+        entity1 = world.spawn("player")
+        entity2 = world.spawn("player")
+        world.tick(0)
+
+        entity1.add_relationship(AllyTo(trust=0.9), entity2.id)
+        world.tick(0)
+
+        collector = WorldMetricsCollector(world, world_id="test_edge_clear")
+        collector.collect()
+
+        # Verify edge type is tracked
+        edge_count = RELATIONSHIPS_BY_TYPE.labels(
+            world_id="test_edge_clear", edge_type="AllyTo"
+        )._value.get()
+        assert edge_count == 1
+
+        # Remove the relationship
+        entity1.remove_relationship(AllyTo, entity2.id)
+        world.tick(0)
+        collector.collect()
+
+        # Edge count should be 0 (cleared)
+        edge_count = RELATIONSHIPS_BY_TYPE.labels(
+            world_id="test_edge_clear", edge_type="AllyTo"
+        )._value.get()
+        assert edge_count == 0

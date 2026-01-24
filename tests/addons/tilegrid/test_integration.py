@@ -347,6 +347,68 @@ class TestErrorCases:
         with pytest.raises(LayerNotFoundError):
             get_tile_at(world, 5.0, 5.0, "nonexistent", index)
 
+    def test_get_chunk_at_without_metadata(self) -> None:
+        """Test get_tile_at when chunk lacks ChunkMetadata."""
+        from relics.addons.tilegrid.index import ChunkIndex
+
+        world = World()
+        # Create a minimal ChunkIndex directly without the full setup
+        index = ChunkIndex(world, chunk_size=32)
+
+        # Create an entity without ChunkMetadata but try to query it
+        # Since there are no chunks in index, this should return None
+        result = get_tile_at(world, 5.0, 5.0, "ground", index)
+        assert result is None
+
+    def test_get_tile_at_invalid_coordinates(self) -> None:
+        """Test get_tile_at with coordinates outside chunk bounds."""
+        world = World()
+        index = create_chunk_index(world, chunk_size=32)
+
+        world.register_prefab(
+            "chunk",
+            {
+                ChunkMetadata: ChunkMetadata(
+                    chunk_size=32,
+                    sprite_sheets=["tiles"],
+                    grid_index=(0, 0),
+                ),
+                TileVisualLayer: TileVisualLayer(name="ground", tiles=[1] * 1024),
+            },
+        )
+        world.spawn("chunk")
+        world.tick(0)
+
+        # Query coordinates that are way outside the chunk
+        # The chunk is at grid (0,0) with size 32, centered at (16, 16)
+        # World coords 1000, 1000 are far outside any chunk
+        result = get_tile_at(world, 1000.0, 1000.0, "ground", index)
+        assert result is None
+
+    def test_get_tile_at_missing_visual_layer(self) -> None:
+        """Test get_tile_at when chunk has metadata but no visual layer."""
+        world = World()
+        index = create_chunk_index(world, chunk_size=32)
+
+        # Chunk with metadata but NO TileVisualLayer
+        world.register_prefab(
+            "chunk",
+            {
+                ChunkMetadata: ChunkMetadata(
+                    chunk_size=32,
+                    sprite_sheets=["tiles"],
+                    grid_index=(0, 0),
+                ),
+                # Note: No TileVisualLayer added
+            },
+        )
+        world.spawn("chunk")
+        world.tick(0)
+
+        # Query should raise LayerNotFoundError because layer doesn't exist
+        with pytest.raises(LayerNotFoundError):
+            get_tile_at(world, 5.0, 5.0, "ground", index)
+
     def test_no_chunk_returns_none(self) -> None:
         """Test that querying empty position returns None."""
         world = World()

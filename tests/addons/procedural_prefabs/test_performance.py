@@ -1,4 +1,7 @@
-"""Performance tests for procedural prefabs addon."""
+"""Performance tests for procedural prefabs addon.
+
+Run with: pytest tests/addons/procedural_prefabs/test_performance.py -v -s -m perf
+"""
 
 import json
 import os
@@ -7,6 +10,7 @@ import tempfile
 import time
 
 import pydantic.dataclasses
+import pytest
 
 from relics import World
 from relics.addons.procedural_prefabs import (
@@ -35,6 +39,7 @@ class Name(Component):
     value: str
 
 
+@pytest.mark.perf
 class TestSpawnPerformance:
     """Performance tests for entity spawning."""
 
@@ -279,6 +284,7 @@ class TestSpawnPerformance:
         assert elapsed < 5000, f"Spawning {count} entities took {elapsed:.3f}ms"
 
 
+@pytest.mark.perf
 class TestListSelectionPerformance:
     """Performance tests for list-based attachment selection."""
 
@@ -345,6 +351,7 @@ class TestListSelectionPerformance:
         assert elapsed < 10000, f"Spawning {count} entities took {elapsed:.3f}ms"
 
 
+@pytest.mark.perf
 class TestCascadeDeletionPerformance:
     """Performance tests for cascade deletion."""
 
@@ -407,6 +414,7 @@ class TestCascadeDeletionPerformance:
         assert elapsed < 10000, f"Cascade delete took {elapsed:.3f}ms"
 
 
+@pytest.mark.perf
 class TestQueryPerformance:
     """Performance tests for entity queries."""
 
@@ -464,6 +472,7 @@ class TestQueryPerformance:
         assert elapsed < 5000, f"Querying children took {elapsed:.3f}ms"
 
 
+@pytest.mark.perf
 class TestMemoryEfficiency:
     """Tests for memory efficiency."""
 

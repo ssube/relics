@@ -4,7 +4,7 @@ These tests measure the performance of the component change tracking system.
 Run baseline tests before making changes, then compare after optimization.
 
 Usage:
-    pytest tests/test_component_change_performance.py -v -s --tb=short
+    pytest tests/test_component_change_performance.py -v -s --tb=short -m perf
 """
 
 import time
@@ -25,6 +25,7 @@ class Health(Component):
     maximum: int
 
 
+@pytest.mark.perf
 class TestComponentChangePerformance:
     """Performance tests for component change tracking."""
 

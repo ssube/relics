@@ -201,3 +201,39 @@ class TestCreateSpatialIndex3D:
         world.tick(0)
 
         assert index.count() == 1
+
+    def test_create_spatial_index_3d_default_extractor(self) -> None:
+        """Test create_spatial_index_3d uses default extractor when not provided."""
+        world = World()
+        world.register_prefab("entity", {Position3D: Position3D(x=50, y=60, z=70)})
+
+        # Create index without providing position_extractor - should use default
+        index = create_spatial_index_3d(
+            world,
+            bounds=OctreeBounds(500, 500, 500, 500, 500, 500),
+        )
+
+        world.spawn("entity")
+        world.tick(0)
+
+        # Query at the entity position - should find it using default extractor
+        results = list(index.query_sphere(50, 60, 70, 10))
+        assert len(results) == 1
+
+    def test_create_spatial_index_3d_lazy_default_extractor(self) -> None:
+        """Test lazy 3D index uses default extractor when not provided."""
+        world = World()
+        world.register_prefab("entity", {Position3D: Position3D(x=100, y=200, z=300)})
+
+        # Create lazy index without position_extractor
+        index = create_spatial_index_3d(
+            world,
+            materialized=False,
+        )
+
+        world.spawn("entity")
+        world.tick(0)
+
+        # Query should work with default extractor
+        results = list(index.query_sphere(100, 200, 300, 10))
+        assert len(results) == 1

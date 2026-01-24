@@ -1,7 +1,12 @@
-"""Performance tests for tile grid addon."""
+"""Performance tests for tile grid addon.
+
+Run with: pytest tests/addons/tilegrid/test_performance.py -v -s -m perf
+"""
 
 import random
 import time
+
+import pytest
 
 from relics import World
 from relics.addons.tilegrid import (
@@ -11,6 +16,7 @@ from relics.addons.tilegrid import (
 )
 
 
+@pytest.mark.perf
 class TestChunkLookupPerformance:
     """Tests for chunk lookup performance."""
 
@@ -104,6 +110,7 @@ class TestChunkLookupPerformance:
         assert times[2] < times[0] * 3
 
 
+@pytest.mark.perf
 class TestBulkInsertionPerformance:
     """Tests for bulk chunk insertion performance."""
 
@@ -140,6 +147,7 @@ class TestBulkInsertionPerformance:
         assert elapsed_ms < 2000
 
 
+@pytest.mark.perf
 class TestIterationPerformance:
     """Tests for chunk iteration performance."""
 
@@ -180,6 +188,7 @@ class TestIterationPerformance:
         assert elapsed_ms < 100
 
 
+@pytest.mark.perf
 class TestLargeChunkData:
     """Tests for performance with large chunk data."""
 
@@ -219,6 +228,7 @@ class TestLargeChunkData:
         assert elapsed_ms < 3000
 
 
+@pytest.mark.perf
 class TestWorldPositionLookup:
     """Tests for world position to chunk lookup performance."""
 

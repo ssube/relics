@@ -41,6 +41,35 @@ class TestChunkIndexObserver:
         assert result is not None
         assert result.id == entity.id
 
+    def test_on_component_added_binds_monitored_component(self) -> None:
+        """Test that adding a monitored component triggers world binding."""
+        world = World()
+        index = create_chunk_index(world, chunk_size=32, auto_register_observer=True)
+
+        # Create entity first without ChunkMetadata
+        world.register_prefab("empty", {})
+        entity = world.spawn("empty")
+        world.tick(0)
+
+        # Add ChunkMetadata component via add_component (triggers OnComponentAdded)
+        metadata = ChunkMetadata(
+            chunk_size=32,
+            sprite_sheets=["tiles"],
+            grid_index=(1, 1),
+        )
+        entity.add_component(metadata)
+        world.tick(0)
+
+        # Verify the chunk was added to the index (observer processed it)
+        result = index.get_chunk_by_grid(1, 1)
+        assert result is not None
+        assert result.id == entity.id
+
+        # If ChunkMetadata is monitored, it should be bound
+        # The _bind_to_world path is covered by the observer's on_component_added
+        loaded_meta = entity.get_component(ChunkMetadata)
+        assert loaded_meta.grid_index == (1, 1)
+
     def test_observer_removes_chunk_on_component_removed(self) -> None:
         """Test that observer removes chunk when ChunkMetadata is removed."""
         world = World()
