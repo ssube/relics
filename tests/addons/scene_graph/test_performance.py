@@ -3,6 +3,8 @@
 import random
 import time
 
+import pytest
+
 from relics import World
 from relics.addons.scene_graph import (
     LocalTransform,
@@ -14,6 +16,7 @@ from relics.addons.scene_graph.factory import create_child_node, create_root_nod
 from relics.addons.scene_graph.types import Vec3
 
 
+@pytest.mark.perf
 class TestPathIndexPerformance:
     """Performance tests for PathIndex operations."""
 
@@ -84,6 +87,7 @@ class TestPathIndexPerformance:
         assert elapsed_ms < 100
 
 
+@pytest.mark.perf
 class TestHierarchyTraversalPerformance:
     """Performance tests for hierarchy traversal."""
 
@@ -131,6 +135,7 @@ class TestHierarchyTraversalPerformance:
         assert elapsed_ms < 100
 
 
+@pytest.mark.perf
 class TestTransformPropagationPerformance:
     """Performance tests for transform propagation."""
 
@@ -188,6 +193,7 @@ class TestTransformPropagationPerformance:
         assert elapsed_ms < 50
 
 
+@pytest.mark.perf
 class TestCreationPerformance:
     """Performance tests for node creation."""
 
@@ -235,6 +241,7 @@ class TestCreationPerformance:
         assert elapsed_ms < 1000  # < 1 second
 
 
+@pytest.mark.perf
 class TestMathOperationsPerformance:
     """Performance tests for math type operations."""
 
