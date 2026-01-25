@@ -31,8 +31,11 @@ metrics = [
 websocket = [
     "websockets>=12.0",
 ]
+numpy = [
+    "numpy>=1.21.0",
+]
 all = [
-    "relics[dev,demo,metrics,websocket]",
+    "relics[dev,demo,metrics,websocket,numpy]",
 ]
 
 [tool.setuptools.packages.find]

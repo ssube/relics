@@ -81,7 +81,7 @@ from .observer import (
 )
 
 # Types
-from .types import Mat4, Quat, Vec3
+from .types import NUMPY_AVAILABLE, Mat4, Quat, QuatLike, Vec3, Vec3Like
 
 # Utilities
 from .utils import (
@@ -106,8 +106,11 @@ from .utils import (
 __all__ = [
     # Types
     "Vec3",
+    "Vec3Like",
     "Quat",
+    "QuatLike",
     "Mat4",
+    "NUMPY_AVAILABLE",
     # Components
     "NodeName",
     "NodePath",

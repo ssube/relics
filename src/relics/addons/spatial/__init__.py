@@ -96,7 +96,7 @@ QueryBuilder Integration:
 """
 
 # Components
-from .components import AABB, Bounds2D, Position2D, Position3D
+from .components import AABB, NUMPY_AVAILABLE, Bounds2D, Position2D, Position3D
 
 # Factory functions
 from .factory import create_spatial_index_2d, create_spatial_index_3d
@@ -150,6 +150,7 @@ __all__ = [
     "Position3D",
     "Bounds2D",
     "AABB",
+    "NUMPY_AVAILABLE",
     # Query regions
     "SpatialRegion",
     "Circle",
