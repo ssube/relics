@@ -242,6 +242,7 @@ Each addon has its own README with detailed API documentation:
 | Procedural Prefabs | `src/relics/addons/procedural_prefabs/` | Graph-based entity generation |
 | Prometheus | `src/relics/addons/prometheus/` | Metrics and monitoring |
 | WebSocket | `src/relics/addons/websocket/` | Real-time multiplayer synchronization |
+| Scene Graph | `src/relics/addons/scene_graph/` | Hierarchical transforms with path lookups |
 
 ## Documentation Tests
 

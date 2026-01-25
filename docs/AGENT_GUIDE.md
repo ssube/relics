@@ -63,6 +63,15 @@ from relics.addons.procedural_prefabs import (
     register_edge_type, create_edge,
 )
 
+# Scene graph addon
+from relics.addons.scene_graph import (
+    NodeName, NodePath, LocalTransform, WorldTransform, LocalOffset,
+    Vec3, Quat, Mat4,
+    ChildOf, AttachedTo,
+    PathIndex, setup_scene_graph, create_root_node, create_child_node,
+    get_node, get_children, get_parent, get_roots, get_descendants,
+)
+
 # Prometheus metrics addon
 from relics.addons.prometheus import (
     WorldMetricsCollector, MetricsServer,
@@ -1366,6 +1375,360 @@ print(f"Destroyed {count} entities")
 
 ---
 
+## Scene Graph Addon (`relics.addons.scene_graph`)
+
+Provides hierarchical transform management where nodes form tree structures, with game entities attached to nodes via relationships.
+
+### Import Patterns
+
+```python
+from relics.addons.scene_graph import (
+    # Components
+    NodeName, NodePath, LocalTransform, WorldTransform, LocalOffset,
+    # Types
+    Vec3, Quat, Mat4,
+    # Edges
+    ChildOf, AttachedTo,
+    # Exceptions
+    SceneGraphError, DuplicatePathError, CycleDetectedError, InvalidNodeError,
+    # Index
+    PathIndex,
+    # Factory
+    setup_scene_graph, create_root_node, create_child_node, SCENE_NODE_PREFAB,
+    # Utilities
+    is_scene_node, get_node, get_children, get_parent,
+    get_attached, get_node_of, get_roots, get_descendants, get_ancestors,
+    compute_path, would_create_cycle,
+)
+```
+
+### Components
+
+All components are `@monitored` for change tracking.
+
+```python
+# src/relics/addons/scene_graph/components.py
+
+@monitored
+class NodeName(Component):
+    name: str  # Node name (e.g., "room_1", "table")
+
+@monitored
+class NodePath(Component):
+    path: str  # Full path (e.g., "/world/room_1/table") - managed by observers
+
+@monitored
+class LocalTransform(Component):
+    position: Vec3  # default: Vec3.zero()
+    rotation: Quat  # default: Quat.identity()
+    scale: Vec3     # default: Vec3.one()
+
+    @staticmethod
+    def identity() -> LocalTransform: ...
+
+@monitored
+class WorldTransform(Component):
+    position: Vec3
+    rotation: Quat
+    scale: Vec3
+    matrix: Mat4  # Precomputed 4x4 transform matrix
+
+    @staticmethod
+    def identity() -> WorldTransform: ...
+
+@monitored
+class LocalOffset(Component):
+    position: Vec3  # Offset from attached node
+    rotation: Quat
+    scale: Vec3
+```
+
+### Math Types
+
+Immutable math types for 3D transforms.
+
+```python
+# src/relics/addons/scene_graph/types.py
+
+@dataclass(frozen=True)
+class Vec3:
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
+    def __add__(self, other: Vec3) -> Vec3: ...
+    def __sub__(self, other: Vec3) -> Vec3: ...
+    def __mul__(self, scalar: float) -> Vec3: ...
+    def __neg__(self) -> Vec3: ...
+    def dot(self, other: Vec3) -> float: ...
+    def cross(self, other: Vec3) -> Vec3: ...
+    def length(self) -> float: ...
+    def normalized(self) -> Vec3: ...
+    def hadamard(self, other: Vec3) -> Vec3: ...  # Component-wise multiplication
+
+    @staticmethod
+    def zero() -> Vec3: ...      # (0, 0, 0)
+    @staticmethod
+    def one() -> Vec3: ...       # (1, 1, 1)
+    @staticmethod
+    def unit_x() -> Vec3: ...    # (1, 0, 0)
+    @staticmethod
+    def unit_y() -> Vec3: ...    # (0, 1, 0)
+    @staticmethod
+    def unit_z() -> Vec3: ...    # (0, 0, 1)
+
+@dataclass(frozen=True)
+class Quat:
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    w: float = 1.0
+
+    def __mul__(self, other: Quat) -> Quat: ...  # Hamilton product
+    def rotate_vector(self, v: Vec3) -> Vec3: ...
+    def conjugate(self) -> Quat: ...
+    def inverse(self) -> Quat: ...
+    def normalized(self) -> Quat: ...
+
+    @staticmethod
+    def identity() -> Quat: ...
+    @staticmethod
+    def from_axis_angle(axis: Vec3, angle: float) -> Quat: ...
+    @staticmethod
+    def from_euler(pitch: float, yaw: float, roll: float) -> Quat: ...
+
+@dataclass(frozen=True)
+class Mat4:
+    data: tuple[float, ...]  # 16 elements, row-major order
+
+    def __mul__(self, other: Mat4) -> Mat4: ...
+    def transform_point(self, p: Vec3) -> Vec3: ...
+    def transform_vector(self, v: Vec3) -> Vec3: ...
+
+    @staticmethod
+    def identity() -> Mat4: ...
+    @staticmethod
+    def from_translation(t: Vec3) -> Mat4: ...
+    @staticmethod
+    def from_rotation(q: Quat) -> Mat4: ...
+    @staticmethod
+    def from_scale(s: Vec3) -> Mat4: ...
+    @staticmethod
+    def from_trs(translation: Vec3, rotation: Quat, scale: Vec3) -> Mat4: ...
+```
+
+### Edges
+
+```python
+# src/relics/addons/scene_graph/edges.py
+
+class ChildOf(Edge):
+    """Parent-child relationship. Direction: child -> parent."""
+    pass
+
+class AttachedTo(Edge):
+    """Entity attachment to a scene node."""
+    pass
+```
+
+### PathIndex
+
+O(1) lookup from path string to node entity.
+
+```python
+# src/relics/addons/scene_graph/index.py
+
+class PathIndex(IndexView):
+    def get(self, path: str) -> Optional[Entity]: ...
+    def exists(self, path: str) -> bool: ...
+    def add_node(self, entity_id: EntityId, path: str) -> None: ...
+    def remove_node(self, entity_id: EntityId) -> None: ...
+    def update_path(self, entity_id: EntityId, old_path: str, new_path: str) -> None: ...
+    def invalidate(self) -> None: ...
+
+    # IndexView interface
+    def __iter__(self) -> Iterator[Entity]: ...
+    def count(self) -> int: ...
+    def get_entity_ids(self) -> Set[EntityId]: ...
+```
+
+### Factory Functions
+
+```python
+# src/relics/addons/scene_graph/factory.py
+
+SCENE_NODE_PREFAB = "_scene_node"
+
+def setup_scene_graph(
+    world: World,
+    *,
+    auto_register_observers: bool = True,
+    register_prefab: bool = True,
+) -> PathIndex: ...
+
+def create_root_node(
+    world: World,
+    name: str,
+    *,
+    use_prefab: bool = True,
+) -> Entity: ...
+
+def create_child_node(
+    world: World,
+    name: str,
+    parent: Entity,
+    *,
+    local_transform: Optional[LocalTransform] = None,
+    use_prefab: bool = True,
+) -> Entity: ...
+```
+
+### Utility Functions
+
+```python
+# src/relics/addons/scene_graph/utils.py
+
+def is_scene_node(entity: Entity) -> bool: ...
+def get_node(world: World, path: str, index: PathIndex) -> Optional[Entity]: ...
+def get_children(world: World, node: Entity) -> List[Entity]: ...
+def get_parent(world: World, node: Entity) -> Optional[Entity]: ...
+def get_attached(world: World, node: Entity) -> List[Entity]: ...
+def get_node_of(world: World, entity: Entity) -> Optional[Entity]: ...
+def get_roots(world: World) -> List[Entity]: ...
+def get_descendants(world: World, node: Entity) -> Iterator[Entity]: ...
+def get_ancestors(world: World, node: Entity) -> Iterator[Entity]: ...
+def compute_path(world: World, node: Entity) -> str: ...
+def would_create_cycle(world: World, child: Entity, new_parent: Entity) -> bool: ...
+```
+
+### Exceptions
+
+```python
+# src/relics/addons/scene_graph/exceptions.py
+
+class SceneGraphError(RelicError): ...
+class DuplicatePathError(SceneGraphError): ...
+class CycleDetectedError(SceneGraphError): ...
+class InvalidNodeError(SceneGraphError): ...
+```
+
+### Usage Example
+
+```python
+from relics import World
+from relics.addons.scene_graph import (
+    setup_scene_graph, create_root_node, create_child_node,
+    LocalTransform, get_node, get_children, get_descendants,
+    Vec3, Quat,
+)
+import math
+
+# Setup
+world = World()
+index = setup_scene_graph(world)
+
+# Create hierarchy
+root = create_root_node(world, "world")
+room = create_child_node(
+    world, "room_1", root,
+    local_transform=LocalTransform(position=Vec3(100.0, 0.0, 0.0))
+)
+table = create_child_node(
+    world, "table", room,
+    local_transform=LocalTransform(
+        position=Vec3(10.0, 0.0, 5.0),
+        rotation=Quat.from_axis_angle(Vec3.unit_y(), math.pi / 4),
+    )
+)
+world.tick(0)
+
+# Query by path
+found = get_node(world, "/world/room_1/table", index)
+assert found.id == table.id
+
+# Traverse hierarchy
+for child in get_children(world, room):
+    print(f"Child: {child.get_component(NodeName).name}")
+
+for desc in get_descendants(world, root):
+    print(f"Descendant: {desc.get_component(NodePath).path}")
+
+# Check world transform (inherited from parents)
+wt = table.get_component(WorldTransform)
+print(f"Table world position: ({wt.position.x}, {wt.position.y}, {wt.position.z})")
+```
+
+### Attaching Entities to Nodes
+
+```python
+from relics.addons.scene_graph import AttachedTo, LocalOffset, get_attached
+
+# Spawn a game entity
+world.register_prefab("item", {})
+mug = world.spawn("item")
+
+# Attach to table with offset
+mug.add_component(LocalOffset(position=Vec3(0.0, 1.0, 0.0)))  # On top
+mug.add_relationship(AttachedTo(), table.id)
+world.tick(0)
+
+# Entity gets WorldTransform from node + offset
+mug_wt = mug.get_component(WorldTransform)
+print(f"Mug at: ({mug_wt.position.x}, {mug_wt.position.y}, {mug_wt.position.z})")
+
+# Query attached entities
+for item in get_attached(world, table):
+    print(f"Attached: {item.id}")
+```
+
+### Multiple Scene Graphs
+
+```python
+# Create multiple independent scene graphs
+world_root = create_root_node(world, "world")
+ui_root = create_root_node(world, "ui")
+
+# Each has its own hierarchy
+create_child_node(world, "room", world_root)
+create_child_node(world, "panel", ui_root)
+
+world.tick(0)
+
+# Query roots
+roots = get_roots(world)  # [world_root, ui_root]
+```
+
+### Transform Propagation
+
+When a node's `LocalTransform` changes, `WorldTransform` is automatically propagated to all descendants and attached entities via observers.
+
+```python
+# Move the room
+room.get_component(LocalTransform).position = Vec3(200.0, 0.0, 0.0)
+world.tick(0)
+
+# Table and mug automatically update
+table_wt = table.get_component(WorldTransform)
+mug_wt = mug.get_component(WorldTransform)
+# Both positions now reflect the room's new position
+```
+
+### File Reference
+
+| Module | Path |
+|--------|------|
+| Components | `src/relics/addons/scene_graph/components.py` |
+| Types | `src/relics/addons/scene_graph/types.py` |
+| Edges | `src/relics/addons/scene_graph/edges.py` |
+| Exceptions | `src/relics/addons/scene_graph/exceptions.py` |
+| Index | `src/relics/addons/scene_graph/index.py` |
+| Observer | `src/relics/addons/scene_graph/observer.py` |
+| Utils | `src/relics/addons/scene_graph/utils.py` |
+| Factory | `src/relics/addons/scene_graph/factory.py` |
+| Exports | `src/relics/addons/scene_graph/__init__.py` |
+
+---
+
 ## Prometheus Metrics Addon (`relics.addons.prometheus`)
 
 Prometheus-compatible metrics for monitoring Relics worlds in production.
@@ -1539,6 +1902,20 @@ ConnectionState.DISCONNECTING   # Disconnect in progress
 | Exceptions | `src/relics/addons/procedural_prefabs/exceptions.py` |
 | Exports | `src/relics/addons/procedural_prefabs/__init__.py` |
 
+### Scene Graph Addon
+
+| Module | Path |
+|--------|------|
+| Components | `src/relics/addons/scene_graph/components.py` |
+| Types | `src/relics/addons/scene_graph/types.py` |
+| Edges | `src/relics/addons/scene_graph/edges.py` |
+| Exceptions | `src/relics/addons/scene_graph/exceptions.py` |
+| Index | `src/relics/addons/scene_graph/index.py` |
+| Observer | `src/relics/addons/scene_graph/observer.py` |
+| Utils | `src/relics/addons/scene_graph/utils.py` |
+| Factory | `src/relics/addons/scene_graph/factory.py` |
+| Exports | `src/relics/addons/scene_graph/__init__.py` |
+
 ### Prometheus Addon
 
 | Module | Path |
@@ -1567,6 +1944,7 @@ ConnectionState.DISCONNECTING   # Disconnect in progress
 | Spatial tests | `tests/addons/spatial/` |
 | Tile Grid tests | `tests/addons/tilegrid/` |
 | Procedural tests | `tests/addons/procedural_prefabs/` |
+| Scene Graph tests | `tests/addons/scene_graph/` |
 
 ### Demo Files
 

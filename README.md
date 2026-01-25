@@ -742,6 +742,44 @@ for equipped in get_children(character, HasEquipped):
 
 [Full documentation →](src/relics/addons/procedural_prefabs/README.md)
 
+### Scene Graph
+
+Hierarchical transform management with parent-child relationships and automatic transform propagation.
+
+```python
+from relics.addons.scene_graph import (
+    setup_scene_graph, create_root_node, create_child_node,
+    LocalTransform, Vec3, AttachedTo,
+)
+
+# Setup scene graph
+path_index = setup_scene_graph(world)
+
+# Create hierarchy
+root = create_root_node(world, "world")
+room = create_child_node(world, "tavern", root,
+    local_transform=LocalTransform(position=Vec3(100, 0, 0)))
+table = create_child_node(world, "table", room,
+    local_transform=LocalTransform(position=Vec3(10, 0, 5)))
+world.tick(0)
+
+# Query by path
+node = path_index.get("/world/tavern/table")
+
+# Attach game entities
+world.add_relationship(mug, AttachedTo(), table)
+```
+
+**Features:**
+- Tree-based spatial organization with path lookups (e.g., `/world/room/table`)
+- Automatic world transform propagation through hierarchy
+- Vec3, Quat, Mat4 math types for 3D transformations
+- Entity attachment to scene nodes
+- Multiple independent scene graphs (world, UI, etc.)
+- Cycle detection for reparenting safety
+
+[Full documentation →](src/relics/addons/scene_graph/README.md)
+
 ## API Reference
 
 ### Core Types
