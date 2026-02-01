@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, cast
 
@@ -15,6 +16,16 @@ from relics.types import Component, Edge, EntityId
 
 if TYPE_CHECKING:
     from relics.world import World
+
+
+class RelicsJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles Enum types and other special objects."""
+
+    def default(self, obj: Any) -> Any:
+        """Encode special types to JSON-compatible values."""
+        if isinstance(obj, Enum):
+            return obj.value
+        return super().default(obj)
 
 
 class JSONPersistenceDriver(PersistenceDriver):
@@ -108,7 +119,7 @@ class JSONPersistenceDriver(PersistenceDriver):
         }
 
         with path.open("w") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, cls=RelicsJSONEncoder)
 
     def load(
         self,
