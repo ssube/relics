@@ -79,7 +79,8 @@ jobs:
             --cov-report=xml \
             --cov-report=html:coverage-html
 
-      # Upload artifacts - use platform-specific actions
+      # GitHub validates every action reference before evaluating step conditions,
+      # so Forgejo-hosted action URLs cannot coexist in this shared workflow.
       - name: Upload coverage XML report (GitHub)
         uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.11' && contains(github.server_url, 'github.com')
@@ -87,23 +88,9 @@ jobs:
           name: coverage-xml
           path: coverage.xml
 
-      - name: Upload coverage XML report (Forgejo)
-        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
-        if: matrix.python-version == '3.11' && !contains(github.server_url, 'github.com')
-        with:
-          name: coverage-xml
-          path: coverage.xml
-
       - name: Upload coverage HTML report (GitHub)
         uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.11' && contains(github.server_url, 'github.com')
-        with:
-          name: coverage-html
-          path: coverage-html/
-
-      - name: Upload coverage HTML report (Forgejo)
-        uses: https://code.forgejo.org/forgejo/upload-artifact@v4
-        if: matrix.python-version == '3.11' && !contains(github.server_url, 'github.com')
         with:
           name: coverage-html
           path: coverage-html/

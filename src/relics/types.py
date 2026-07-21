@@ -8,13 +8,15 @@ if TYPE_CHECKING:
     from relics.entity import Entity
 
 
-@pydantic.dataclasses.dataclass(frozen=True)
+@pydantic.dataclasses.dataclass(frozen=True, order=True)
 class EntityId:
     """Structured entity identifier.
 
     Attributes:
         prefab: The prefab name this entity was instantiated from.
         sequence: Per-prefab timestamp + collision counter for uniqueness.
+
+    Entity IDs compare and sort by ``prefab`` first, then by ``sequence``.
     """
 
     prefab: str

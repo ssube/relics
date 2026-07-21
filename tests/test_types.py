@@ -48,12 +48,27 @@ class TestEntityId:
         id2 = EntityId(prefab="test", sequence=100)
         assert hash(id1) == hash(id2)
         assert id1 == id2
+        assert {id1: "entity"}[id2] == "entity"
 
     def test_hash_inequality(self) -> None:
         """Test that different EntityIds have different hashes."""
         id1 = EntityId(prefab="test", sequence=100)
         id2 = EntityId(prefab="test", sequence=200)
         assert id1 != id2
+
+    def test_ordering_uses_prefab_then_sequence(self) -> None:
+        """Entity IDs sort deterministically by prefab and numeric sequence."""
+        player_later = EntityId(prefab="player", sequence=20)
+        apple = EntityId(prefab="apple", sequence=100)
+        player_earlier = EntityId(prefab="player", sequence=3)
+
+        assert sorted([player_later, apple, player_earlier]) == [
+            apple,
+            player_earlier,
+            player_later,
+        ]
+        assert player_earlier < player_later
+        assert player_later > player_earlier
 
     def test_frozen(self) -> None:
         """Test that EntityId is immutable."""

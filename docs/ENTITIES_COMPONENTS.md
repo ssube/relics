@@ -51,6 +51,9 @@ from relics import EntityId
 # EntityId is a frozen dataclass (immutable)
 entity_id = EntityId(prefab="player", sequence=1234567890)
 
+# IDs sort by prefab first, then by numeric sequence
+ordered_ids = sorted(entity_ids)
+
 # String representation
 print(str(entity_id))  # "player_1234567890"
 
