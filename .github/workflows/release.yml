@@ -26,6 +26,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Upgrade packaging bootstrap
+        run: python -m pip install --upgrade "pip>=26.1.2" "setuptools>=83.0.0"
+
       - name: Install package and test dependencies
         run: python -m pip install ".[all,dev]"
 
@@ -51,6 +54,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     permissions:
+      artifact-metadata: write
       attestations: write
       contents: read
       id-token: write
@@ -95,6 +99,11 @@ jobs:
             --output-format JSON \
             --output-file dist/relics-ecs.cdx.json \
             --output-reproducible
+          serial="urn:uuid:${GITHUB_SHA:0:8}-${GITHUB_SHA:8:4}-5${GITHUB_SHA:13:3}-8${GITHUB_SHA:17:3}-${GITHUB_SHA:20:12}"
+          jq --arg serial "$serial" \
+            '.serialNumber = $serial' \
+            dist/relics-ecs.cdx.json > dist/relics-ecs.cdx.tmp.json
+          mv dist/relics-ecs.cdx.tmp.json dist/relics-ecs.cdx.json
 
       - name: Record distribution hashes
         run: |
