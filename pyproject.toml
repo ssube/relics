@@ -1,16 +1,39 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "relics"
+name = "relics-ecs"
 version = "0.1.0"
-description = "Relics project"
+description = "A typed entity-component-system framework with graph database semantics"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Sean Sube" },
+]
 requires-python = ">=3.11"
+keywords = ["ecs", "entity-component-system", "game-development", "graph"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
 dependencies = [
     "pydantic",
     "sqlalchemy",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ssube/relics"
+Documentation = "https://github.com/ssube/relics/tree/main/docs"
+Issues = "https://github.com/ssube/relics/issues"
+Repository = "https://github.com/ssube/relics.git"
 
 [project.optional-dependencies]
 dev = [
@@ -18,7 +41,7 @@ dev = [
     "pytest-asyncio~=1.3.0",
     "pytest-cov~=7.0.0",
     "flake8~=7.3.0",
-    "black~=26.1.0",
+    "black~=26.3.1",
     "isort~=7.0.0",
     "mypy~=1.19.0",
 ]
@@ -35,7 +58,7 @@ numpy = [
     "numpy>=1.21.0",
 ]
 all = [
-    "relics[dev,demo,metrics,websocket,numpy]",
+    "relics-ecs[demo,metrics,websocket,numpy]",
 ]
 
 [tool.setuptools.packages.find]

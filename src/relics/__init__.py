@@ -3,7 +3,12 @@
 A relic is a snapshot of a world at a particular epoch.
 """
 
-__version__ = "0.2.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("relics-ecs")
+except PackageNotFoundError:
+    __version__ = "0.0.0+unknown"
 
 # Entity handle
 from relics.entity import Entity

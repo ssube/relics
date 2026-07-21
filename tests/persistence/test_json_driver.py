@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+from enum import Enum
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,20 @@ class Health(Component):
 
     current: int
     maximum: int
+
+
+class Mood(Enum):
+    """A non-string Enum that requires explicit JSON encoding."""
+
+    HAPPY = "happy"
+    CURIOUS = "curious"
+
+
+@dataclass
+class Disposition(Component):
+    """Test component containing an Enum value."""
+
+    mood: Mood
 
 
 @dataclass
@@ -85,6 +100,29 @@ class TestJSONPersistenceDriver:
             assert loaded_entity.get_component(Position).x == 10
         finally:
             Path(temp_path).unlink()
+
+    def test_driver_round_trips_enum_component(self, tmp_path: Path) -> None:
+        """Enum-backed component fields remain typed after JSON persistence."""
+        driver = JSONPersistenceDriver()
+        world = World()
+        world.register_prefab(
+            "character", {Disposition: Disposition(mood=Mood.CURIOUS)}
+        )
+        entity = world.spawn("character")
+        save_path = tmp_path / "enum-world.json"
+
+        driver.save(world, save_path)
+
+        serialized = json.loads(save_path.read_text())
+        disposition = serialized["components"]["Disposition"][str(entity.id)]
+        assert disposition == {"mood": "curious"}
+
+        restored = World()
+        driver.load(restored, save_path, {"Disposition": Disposition})
+        assert (
+            restored.get_entity(entity.id).get_component(Disposition).mood
+            is Mood.CURIOUS
+        )
 
     def test_driver_round_trip_with_relationships(self) -> None:
         """Test save/load round-trip with relationships."""

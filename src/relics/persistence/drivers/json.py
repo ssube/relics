@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Type, cast
 
 from relics.persistence.base import PersistenceDriver, RelicInfo
 from relics.persistence.serialization import _component_to_dict, _dict_to_component
@@ -21,11 +21,13 @@ if TYPE_CHECKING:
 class RelicsJSONEncoder(json.JSONEncoder):
     """Custom JSON encoder that handles Enum types and other special objects."""
 
-    def default(self, obj: Any) -> Any:
+    def default(self, obj: object) -> object:
         """Encode special types to JSON-compatible values."""
         if isinstance(obj, Enum):
-            return obj.value
-        return super().default(obj)
+            value: object = obj.value
+            return value
+        encoded: object = super().default(obj)
+        return encoded
 
 
 class JSONPersistenceDriver(PersistenceDriver):
@@ -53,7 +55,7 @@ class JSONPersistenceDriver(PersistenceDriver):
         path = Path(path)
 
         # Build metadata
-        metadata: Dict[str, Any] = {
+        metadata: Dict[str, object] = {
             "version": "1.0",
             "epoch": world.epoch,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -63,12 +65,12 @@ class JSONPersistenceDriver(PersistenceDriver):
             metadata["relic_name"] = relic_name
 
         # Build prefabs section
-        prefabs_data: Dict[str, Dict[str, Any]] = {}
+        prefabs_data: Dict[str, Dict[str, object]] = {}
         for prefab_name, components in world._prefabs.items():
             prefabs_data[prefab_name] = prefab_to_dict(prefab_name, components)
 
         # Build entities section (entity_id -> metadata)
-        entities_data: Dict[str, Dict[str, Any]] = {}
+        entities_data: Dict[str, Dict[str, object]] = {}
         for entity_id in world._entities:
             entities_data[str(entity_id)] = {
                 "prefab": entity_id.prefab,
@@ -77,7 +79,7 @@ class JSONPersistenceDriver(PersistenceDriver):
 
         # Build components section (type-grouped)
         # Skip @temporary_component types as they should not be persisted
-        components_data: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        components_data: Dict[str, Dict[str, Dict[str, object]]] = {}
         for entity_id, components in world._entities.items():
             for comp_type, comp_instance in components.items():
                 if is_temporary(comp_type):
@@ -90,7 +92,7 @@ class JSONPersistenceDriver(PersistenceDriver):
                 )
 
         # Build relationships section (type-grouped)
-        relationships_data: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+        relationships_data: Dict[str, Dict[str, List[Dict[str, object]]]] = {}
         for source_id, edge_types in world._relationships.items():
             for edge_type, edges in edge_types.items():
                 type_name = edge_type.__name__

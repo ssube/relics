@@ -21,18 +21,18 @@ Relics is an engine-agnostic ECS framework that treats relationships as first-cl
 ## Installation
 
 ```bash
-pip install relics
+pip install relics-ecs
 ```
 
 Install with optional addon dependencies:
 
 ```bash
 # All addons
-pip install relics[all]
+pip install relics-ecs[all]
 
 # Specific addons
-pip install relics[prometheus]    # Metrics and monitoring
-pip install relics[websocket]     # Real-time multiplayer sync
+pip install relics-ecs[metrics]      # Metrics and monitoring
+pip install relics-ecs[websocket]    # Real-time multiplayer sync
 ```
 
 Or install from source:
