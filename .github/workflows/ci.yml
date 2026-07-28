@@ -82,14 +82,14 @@ jobs:
       # GitHub validates every action reference before evaluating step conditions,
       # so Forgejo-hosted action URLs cannot coexist in this shared workflow.
       - name: Upload coverage XML report (GitHub)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: matrix.python-version == '3.11' && contains(github.server_url, 'github.com')
         with:
           name: coverage-xml
           path: coverage.xml
 
       - name: Upload coverage HTML report (GitHub)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: matrix.python-version == '3.11' && contains(github.server_url, 'github.com')
         with:
           name: coverage-html
